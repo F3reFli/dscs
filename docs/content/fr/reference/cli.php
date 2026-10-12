@@ -23,6 +23,7 @@ dscs get ID [-o DOSSIER] [--flat]
 dscs rm ID [-y]
 dscs gc
 dscs webhooks
+dscs bench [-s MO] [-w WEBHOOK]... [-p N] [--download] [-y]
 dscs sync
 dscs device [show | init | add | join | list | revoke | recover | passphrase]
 dscs key [list | rotate | recovery]
@@ -103,6 +104,24 @@ seule instance de dscs ouverte.</p>
 <code>https://discord.com/channels/…</code>. Interroge Discord (nom, identifiants du serveur et du salon) et met à jour le
 cache local. Les noms lisibles viennent de <code>config.toml</code> (<?= $c->link('reference/config', null, 'servers-et-channels') ?>).
 Code <code>1</code> si le coffre n'a aucun webhook.</p>
+
+<h2><code>bench</code></h2>
+<?= $c->code('text', 'dscs bench [-s MO] [-w WEBHOOK]... [-p N] [--download] [-y]') ?>
+<p>Mesure le débit d'envoi vers Discord : envoie des données aléatoires (100 Mo par défaut) avec le même schéma que
+<code>dscs put</code>, morceaux répartis entre les webhooks, puis <strong>supprime tous les messages de test</strong>,
+même en cas d'erreur ou d'interruption. Rien n'entre dans le coffre et aucune clé n'est utilisée. Une confirmation est
+demandée (envoi réel vers Discord).</p>
+<?= $c->table(['Option', 'Effet'], [
+    ['<code>-s MO</code>', 'Quantité envoyée, en Mo (1 à 4096)'],
+    ['<code>-w WEBHOOK</code>', 'N\'utiliser que ce webhook (nom ou identifiant, répétable) ; défaut : tous'],
+    ['<code>-p N</code>', 'Envois simultanés par webhook (1 à 8 ; défaut 1, comme <code>dscs put</code>)'],
+    ['<code>--download</code>', 'Mesurer aussi le téléchargement : les données sont relues avant d\'être supprimées'],
+    ['<code>-y</code>', 'Ne pas demander confirmation (obligatoire hors d\'un terminal)'],
+]) ?>
+<p>Le tableau donne, par webhook, le salon, les morceaux envoyés, le débit et les freinages imposés par Discord
+(réponses <code>429</code> et attentes). Pour savoir si un salon de plus vaut le coup, compare le total de
+<code>dscs bench</code> avec celui de <code>dscs bench -w &lt;un webhook&gt;</code> : si le total ne monte plus quand tu ajoutes
+des salons, c'est ta connexion qui sature. Code <code>1</code> si des messages de test n'ont pas pu être supprimés.</p>
 
 <h2><code>device</code></h2>
 <p>Appareils du coffre. Guide pas à pas : <?= $c->link('guide/appareils') ?>.</p>

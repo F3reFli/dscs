@@ -71,7 +71,11 @@ dscs get 12 -o ~/Bureau         # récupérer (--flat : sans recréer le dossier
 dscs rm 12                      # supprimer de Discord (-y : sans confirmation)
 dscs gc                         # nettoyer les envois interrompus
 dscs webhooks                   # webhooks du coffre : serveur, salon, lien
+dscs bench                      # mesurer le débit d'envoi (données de test, supprimées ensuite)
 ```
+
+Pour envoyer plus vite, ajoute des webhooks **dans d'autres salons** (un par salon) dans `config.toml` : les morceaux
+d'un fichier de plus de 9 Mo se répartissent entre eux. `dscs bench` mesure le gain.
 
 ## Plusieurs appareils, chiffrement de bout en bout
 

@@ -173,7 +173,9 @@ download folder. This cannot happen with an index produced by dscs: it has proba
 
 <h3>Uploads are slow</h3>
 <p>Discord limits the number of messages per webhook and per channel; dscs waits automatically when asked to. Add webhooks
-in other channels to parallelise (<?= $c->link('guide/configuration', null, 'webhooks') ?>).</p>
+in other channels to parallelise (<?= $c->link('guide/configuration', null, 'webhooks') ?>): the chunks of a file larger than
+9 MB are spread over them. Measure the gain with <code>dscs bench</code> (<?= $c->link('reference/cli', null, 'bench') ?>):
+if the total stops rising as you add channels, your connection is saturated.</p>
 
 <h3><code>Une autre instance de dscs est ouverte : ferme-la avant de lancer cette opération.</code></h3>
 <p><em>Another dscs instance is open: close it before running this operation.</em> <code>dscs gc</code> needs to be alone.

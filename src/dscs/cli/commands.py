@@ -229,6 +229,85 @@ def cmd_webhooks(args: argparse.Namespace) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------- bench
+
+MIB = 1024 * 1024
+
+
+def cmd_bench(args: argparse.Namespace) -> int:
+    if not 0 < args.size <= 4096:
+        raise DSCSError("Quantité du test : entre 1 et 4096 Mo (-s).")
+    if not 1 <= args.parallel <= 8:
+        raise DSCSError("Envois simultanés par webhook : entre 1 et 8 (-p).")
+    total = int(args.size * MIB)
+    with open_vault() as vault:
+        ids = vault.resolve_webhooks(args.webhooks) if args.webhooks else [i.id for i in vault.webhook_infos()]
+        if not ids:
+            raise DSCSError("Aucun webhook dans le coffre : ajoute leurs URL dans config.toml (clé webhooks).")
+        names = {i.id: i.display_name for i in vault.webhook_infos()}
+        chunk = vault.settings.chunk_size
+        chunks = -(-total // chunk)
+        print(f"Test de débit : {human(total)} de données aléatoires, {chunks} morceau(x) de {human(chunk)} max,")
+        print(f"sur {len(ids)} webhook(s) ({', '.join(names[i] for i in ids)}), {args.parallel} envoi(s) à la fois par "
+              "webhook.")
+        print("Rien n'entre dans le coffre : les messages de test sont supprimés à la fin, même si tu interromps.")
+        if chunks < len(ids) * args.parallel:
+            print(f"⚠ {chunks} morceau(x) pour {len(ids) * args.parallel} envois simultanés : des webhooks resteront "
+                  "inactifs (augmente -s).")
+        if not args.yes:
+            if not sys.stdin.isatty():
+                raise DSCSError("Confirmation impossible hors d'un terminal : ajoute -y.")
+            if not prompts.confirm("Lancer le test (envoi réel vers Discord) ?"):
+                return 1
+        progress = TextProgress("envoi", total)
+
+        async def run():
+            await vault.start()  # sans synchronisation : le coffre n'est pas concerné
+            try:
+                await vault.refresh_webhook_info()  # noms et salons à jour pour le tableau
+                return await vault.benchmark(total, ids, args.parallel, args.download, progress)
+            finally:
+                await vault.stop()
+
+        report = asyncio.run(run())
+    progress.finish(f"✓ {human(report.sent)} envoyés en {report.up_seconds:.1f} s")
+    _print_bench(report, args)
+    return 0 if not report.leftovers else 1
+
+
+def _print_bench(report, args: argparse.Namespace) -> None:
+    head = f"{'Webhook':16} {'Salon':20} {'Morceaux':>8} {'Envoyé':>10} {'Temps':>8} {'Débit':>12}"
+    print(f"\n  {head}  Freiné par Discord")
+    for w in report.webhooks:
+        brake = f"{w.throttled}× 429, {w.waited:.1f} s d'attente" if w.throttled or w.waited >= 0.05 else "non"
+        print(f"  {w.info.display_name[:16]:16} {w.info.channel[:20]:20} {w.chunks:>8} {human(w.sent):>10} "
+              f"{w.up_seconds:>6.1f} s {human(w.up_rate) + '/s':>12}  {brake}")
+    print(f"  {'Total':16} {'':20} {sum(w.chunks for w in report.webhooks):>8} {human(report.sent):>10} "
+          f"{report.up_seconds:>6.1f} s {human(report.up_rate) + '/s':>12}")
+    if args.download:
+        print(f"\n  Téléchargement : {human(report.received)} relus en {report.down_seconds:.1f} s → "
+              f"{human(report.down_rate)}/s")
+
+    print()
+    if report.leftovers:
+        print(f"⚠ {report.leftovers} message(s) de test n'ont pas pu être supprimés (données aléatoires, sans "
+              f"lien avec le coffre) : supprime-les dans Discord si tu veux. Erreur : {report.errors[0]}")
+    else:
+        print(f"✓ {report.deleted} message(s) de test supprimé(s).")
+    for group in report.shared_channels():
+        print(f"⚠ {', '.join(w.info.display_name for w in group)} sont dans le même salon : ils partagent la limite de "
+              "messages du salon. Un webhook par salon pour additionner les débits.")
+    waited = sum(w.waited for w in report.webhooks)
+    busy = sum(w.up_seconds for w in report.webhooks) or 1
+    if waited / busy > 0.2:
+        print("ℹ Discord a souvent freiné les envois (limites par webhook et par salon) : ajouter des salons aidera "
+              "plus que des envois simultanés (-p).")
+    if len(report.webhooks) > 1:
+        print("ℹ Pour voir ce qu'apporte chaque salon, compare avec un seul : dscs bench -w <webhook>.")
+    else:
+        print("ℹ Pour voir ce qu'apporte un salon de plus, compare avec tous les webhooks : dscs bench.")
+
+
 # ---------------------------------------------------------------------- device
 
 def cmd_device_show(args: argparse.Namespace) -> int:

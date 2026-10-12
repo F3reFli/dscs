@@ -127,6 +127,7 @@ new interface (a GUI, a local web service…) would only need to talk to the Vau
     ['<code>sync/</code>', 'Superblock, encrypted index snapshot, synchronisation engine (pull / push, trust), invitations and kits (' . $c->link('concepts/synchronisation') . ').'],
     ['<code>services/vault.py</code>', '<code>Vault</code>: assembles config, keyring, index, lock, HTTP session and synchronisation; adding and removing devices.'],
     ['<code>services/keystore.py</code>', '<code>KeyStore</code>: device identity and local keyring, passphrase, migration of the former key.'],
+    ['<code>services/bench.py</code>', 'Rate measurement (<code>dscs bench</code>): random data, deleted afterwards, outside the vault.'],
     ['<code>services/devices.py</code>', 'Joining a vault: by invitation (<code>join_vault</code>) or by recovery kit (<code>recover_vault</code>).'],
     ['<code>services/setup.py</code>', '<code>initialize()</code> and <code>probe_webhook()</code>, used by <code>dscs init</code>.'],
 ]) ?>

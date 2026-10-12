@@ -9,7 +9,7 @@ import aiohttp
 
 from ..errors import DiscordError
 from ..models import WebhookRef
-from .http import request
+from .http import Throttle, request
 
 OFFICIAL_URL_RE = re.compile(r"^https://(?:\w+\.)?discord(?:app)?\.com/api/(?:v\d+/)?webhooks/\d+/[\w-]+/?$")
 SUPPRESS_NOTIFICATIONS = 1 << 12  # pas de ping dans le salon
@@ -29,13 +29,14 @@ class WebhookClient:
     def __init__(self, session: aiohttp.ClientSession, ref: WebhookRef):
         self.session = session
         self.ref = ref
+        self.throttle = Throttle()  # freinages subis par ce webhook (mesurés par « dscs bench »)
 
     @property
     def id(self) -> str:
         return self.ref.id
 
     async def info(self) -> dict:
-        return await request(self.session, "GET", self.ref.url)
+        return await request(self.session, "GET", self.ref.url, throttle=self.throttle)
 
     async def upload(self, blob: bytes, filename: str) -> SentMessage:
         def build():
@@ -49,7 +50,7 @@ class WebhookClient:
             form.add_field("files[0]", blob, filename=filename, content_type="application/octet-stream")
             return {"data": form}
 
-        msg = await request(self.session, "POST", f"{self.ref.url}?wait=true", build=build)
+        msg = await request(self.session, "POST", f"{self.ref.url}?wait=true", build=build, throttle=self.throttle)
         channel = msg.get("channel_id")
         return SentMessage(id=str(msg["id"]), channel_id=str(channel) if channel else None)
 
@@ -63,12 +64,13 @@ class WebhookClient:
             form.add_field("files[0]", blob, filename=filename, content_type="application/octet-stream")
             return {"data": form}
 
-        await request(self.session, "PATCH", f"{self.ref.url}/messages/{message_id}", build=build)
+        url = f"{self.ref.url}/messages/{message_id}"
+        await request(self.session, "PATCH", url, build=build, throttle=self.throttle)
 
     async def download_attachment(self, message_id: str) -> bytes:
         # les liens CDN expirent (~24 h) : on redemande toujours le message pour avoir un lien frais
         try:
-            msg = await request(self.session, "GET", f"{self.ref.url}/messages/{message_id}")
+            msg = await request(self.session, "GET", f"{self.ref.url}/messages/{message_id}", throttle=self.throttle)
         except DiscordError as e:
             if e.status == 404:
                 raise DiscordError(
@@ -84,7 +86,7 @@ class WebhookClient:
 
     async def delete_message(self, message_id: str, *, missing_ok: bool = False) -> None:
         try:
-            await request(self.session, "DELETE", f"{self.ref.url}/messages/{message_id}")
+            await request(self.session, "DELETE", f"{self.ref.url}/messages/{message_id}", throttle=self.throttle)
         except DiscordError as e:
             if not (missing_ok and e.status == 404):  # déjà supprimé à la main : pas grave
                 raise

@@ -126,6 +126,20 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("-o", "--output", type=Path, metavar="FICHIER", help="écrire le kit dans ce fichier (droits 600)")
     k.set_defaults(func=commands.cmd_key_recovery)
 
+    s = sub.add_parser("bench", help="mesurer le débit d'envoi vers Discord (données de test, supprimées ensuite)")
+    s.add_argument("-s", "--size", type=float, default=100.0, metavar="MO", help="quantité en Mo (défaut : 100)")
+    s.add_argument(
+        "-w", "--webhook", action="append", metavar="WEBHOOK", dest="webhooks",
+        help="n'utiliser que ce webhook (identifiant ou nom, répétable ; défaut : tous)",
+    )
+    s.add_argument(
+        "-p", "--parallel", type=int, default=1, metavar="N",
+        help="envois simultanés par webhook (défaut : 1, comme dscs put)",
+    )
+    s.add_argument("--download", action="store_true", help="mesurer aussi le téléchargement (relu avant suppression)")
+    s.add_argument("-y", "--yes", action="store_true", help="ne pas demander confirmation")
+    s.set_defaults(func=commands.cmd_bench)
+
     s = sub.add_parser("sync", help="synchroniser le coffre avec les autres appareils")
     s.add_argument(
         "--repair", action="store_true",
@@ -136,4 +150,4 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMMANDS = {"tui", "init", "put", "ls", "get", "rm", "gc", "webhooks", "device", "key", "sync"}
+COMMANDS = {"tui", "init", "put", "ls", "get", "rm", "gc", "webhooks", "bench", "device", "key", "sync"}

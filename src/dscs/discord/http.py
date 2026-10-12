@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import aiohttp
@@ -15,6 +16,14 @@ MAX_ATTEMPTS = 8
 MAX_BACKOFF = 30.0
 
 Expect = Literal["json", "bytes"]
+
+
+@dataclass
+class Throttle:
+    """Freinages imposés par Discord sur un webhook : réponses 429 et attentes de son quota de requêtes."""
+
+    hits: int = 0  # réponses 429
+    waited: float = 0.0  # secondes passées à attendre (429 et quota épuisé)
 
 
 def new_session() -> aiohttp.ClientSession:
@@ -33,6 +42,7 @@ async def request(
     build: Callable[[], dict[str, Any]] | None = None,
     expect: Expect = "json",
     attempts: int = MAX_ATTEMPTS,
+    throttle: Throttle | None = None,
 ) -> Any:
     """Requête avec retry. `build` recrée les arguments à chaque essai (FormData n'est pas réutilisable).
 
@@ -51,6 +61,9 @@ async def request(
                         wait = float(data.get("retry_after", 1))
                     except Exception:
                         wait = float(r.headers.get("Retry-After", 1))
+                    if throttle:
+                        throttle.hits += 1
+                        throttle.waited += wait + 0.1
                     await asyncio.sleep(wait + 0.1)
                     continue
                 if r.status >= 500:
@@ -65,6 +78,8 @@ async def request(
                 if r.headers.get("X-RateLimit-Remaining") == "0":
                     reset = r.headers.get("X-RateLimit-Reset-After")
                     if reset:
+                        if throttle:
+                            throttle.waited += float(reset)
                         await asyncio.sleep(float(reset))
                 if r.status == 204:
                     return None

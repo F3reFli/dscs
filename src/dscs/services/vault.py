@@ -29,6 +29,7 @@ from ..index import Index, ProcessLock
 from ..models import StoredFile, UploadItem, UploadPlan, WebhookInfo, WebhookRef
 from ..sync import Invitation, RecoveryKit, SyncEngine, SyncReport
 from ..transfer import ProgressCB
+from .bench import BenchReport, run_benchmark
 from .keystore import NO_KEYRING_HELP, KeyStore
 
 
@@ -280,6 +281,26 @@ class Vault:
             if matches[0] not in out:
                 out.append(matches[0])
         return out
+
+    async def benchmark(
+        self,
+        total: int,
+        webhooks: list[str] | None = None,
+        per_webhook: int = 1,
+        download: bool = False,
+        on_progress: ProgressCB | None = None,
+    ) -> BenchReport:
+        """Mesure le débit avec `total` octets de données aléatoires, supprimées ensuite ; le coffre n'est pas touché.
+
+        `webhooks` : identifiants à utiliser (défaut : tous). Ne demande ni clé ni synchronisation.
+        """
+        infos = {i.id: i for i in self.webhook_infos()}
+        ids = webhooks or list(infos)
+        clients = [(self.pool.get(wid), infos[wid]) for wid in ids]
+        return await run_benchmark(
+            clients, total, self.settings.chunk_size, per_webhook=per_webhook, download=download,
+            on_progress=on_progress,
+        )
 
     def file_webhooks(self) -> dict[int, list[str]]:
         return self.index.webhooks_by_file()

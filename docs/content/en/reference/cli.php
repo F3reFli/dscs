@@ -23,6 +23,7 @@ dscs get ID [-o FOLDER] [--flat]
 dscs rm ID [-y]
 dscs gc
 dscs webhooks
+dscs bench [-s MB] [-w WEBHOOK]... [-p N] [--download] [-y]
 dscs sync
 dscs device [show | init | add | join | list | revoke | recover | passphrase]
 dscs key [list | rotate | recovery]
@@ -104,6 +105,23 @@ dscs instance.</p>
 <code>https://discord.com/channels/…</code> link. Asks Discord (name, server and channel IDs) and updates the local cache.
 Readable names come from <code>config.toml</code> (<?= $c->link('reference/config', null, 'servers-and-channels') ?>).
 Code <code>1</code> if the vault has no webhook.</p>
+
+<h2><code>bench</code></h2>
+<?= $c->code('text', 'dscs bench [-s MB] [-w WEBHOOK]... [-p N] [--download] [-y]') ?>
+<p>Measures the upload rate to Discord: sends random data (100 MB by default) the same way as <code>dscs put</code>,
+chunks spread over the webhooks, then <strong>deletes every test message</strong>, even after an error or an
+interruption. Nothing enters the vault and no key is used. A confirmation is asked (real traffic to Discord).</p>
+<?= $c->table(['Option', 'Effect'], [
+    ['<code>-s MB</code>', 'Amount sent, in MB (1 to 4096)'],
+    ['<code>-w WEBHOOK</code>', 'Only use this webhook (name or ID, repeatable); default: all'],
+    ['<code>-p N</code>', 'Simultaneous uploads per webhook (1 to 8; default 1, as <code>dscs put</code>)'],
+    ['<code>--download</code>', 'Also measure downloading: the data is read back before being deleted'],
+    ['<code>-y</code>', 'Do not ask for confirmation (required outside a terminal)'],
+]) ?>
+<p>The table gives, per webhook, the channel, the chunks sent, the rate and the throttling imposed by Discord
+(<code>429</code> responses and waits). To know whether one more channel is worth it, compare the total of
+<code>dscs bench</code> with that of <code>dscs bench -w &lt;one webhook&gt;</code>: if the total stops rising as you add
+channels, your connection is saturated. Code <code>1</code> if some test messages could not be deleted.</p>
 
 <h2><code>device</code></h2>
 <p>Devices of the vault. Step-by-step guide: <?= $c->link('guide/appareils') ?>.</p>

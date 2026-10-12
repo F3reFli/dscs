@@ -75,6 +75,7 @@ Règles de dépendance :
 | `sync/invitation.py` | `Invitation` (adresse du coffre) et `RecoveryKit` (adresse + clé privée de secours). |
 | `services/keystore.py` | `KeyStore` : `device.json`, `keyring.sealed`, migration de l'ancienne clé, phrase de passe. |
 | `services/vault.py` | `Vault` : assemble tout ; transferts, synchronisation, appareils (ajout, retrait, rotation, secours). |
+| `services/bench.py` | `dscs bench` : débit par webhook avec des données aléatoires, supprimées ensuite (hors coffre, sans clé). |
 | `services/devices.py` | `join_vault` (invitation) et `recover_vault` (kit de secours) pour un appareil sans trousseau. |
 | `services/setup.py` | `initialize()` et `probe_webhook()` pour `dscs init`. |
 | `cli/` | `parser.py`, `commands.py` (une `cmd_*` par commande), `prompts.py` (saisies), `progress.py`. |

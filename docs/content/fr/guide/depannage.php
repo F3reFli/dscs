@@ -161,7 +161,10 @@ un index produit par dscs : celui-ci a probablement été modifié.</p>
 
 <h3>Les envois sont lents</h3>
 <p>Discord limite le nombre de messages par webhook et par salon ; dscs attend automatiquement quand il le demande.
-Ajoute des webhooks dans d'autres salons pour paralléliser (<?= $c->link('guide/configuration', null, 'webhooks') ?>).</p>
+Ajoute des webhooks dans d'autres salons pour paralléliser (<?= $c->link('guide/configuration', null, 'webhooks') ?>) : les
+morceaux d'un fichier de plus de 9 Mo se répartissent entre eux. Mesure le gain avec <code>dscs bench</code>
+(<?= $c->link('reference/cli', null, 'bench') ?>) : si le total ne monte plus en ajoutant des salons, c'est ta connexion
+qui sature.</p>
 
 <h3><code>Une autre instance de dscs est ouverte : ferme-la avant de lancer cette opération.</code></h3>
 <p><code>dscs gc</code> a besoin d'être seul. Ferme l'interface ou attends la fin de l'autre commande.</p>

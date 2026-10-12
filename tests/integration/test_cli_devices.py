@@ -135,3 +135,16 @@ def test_repair_after_webhooks_moved(cli_discord, tmp_path, on):
     assert "b.txt" in on("A", "ls")[1]
     code, out = on("A", "sync", "--repair")
     assert code == 0 and "rien à réparer" in out
+
+
+def test_bench_through_cli(server_urls, tmp_path, on):
+    initialize(Paths(tmp_path / "A", tmp_path / "A"), server_urls, device_name="pc-fixe")
+    code, out = on("A", "bench", "-s", "20")
+    assert code == 1 and "-y" in out, "hors terminal, il faut confirmer avec -y"
+    code, out = on("A", "bench", "-s", "20", "-y", "--download")
+    assert code == 0, out
+    assert "Total" in out and "Téléchargement" in out and "3 message(s) de test supprimé(s)" in out
+    assert "Stockage 1" in out and "Stockage 2" in out
+    code, out = on("A", "bench", "-s", "5", "-y", "-w", "Stockage 2")
+    assert code == 0 and "Stockage 1" not in out.split("Webhook")[1]
+    assert ".bin" not in on("A", "ls")[1], "rien n'est entré dans le coffre"

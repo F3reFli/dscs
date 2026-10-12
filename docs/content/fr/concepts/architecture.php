@@ -127,6 +127,7 @@ interface (une GUI, un service web local…) n'aurait qu'à parler au Vault.</p>
     ['<code>sync/</code>', 'Superbloc, instantané d\'index chiffré, moteur de synchronisation (pull / push, confiance), invitations et kits (' . $c->link('concepts/synchronisation') . ').'],
     ['<code>services/vault.py</code>', '<code>Vault</code> : assemble config, trousseau, index, verrou, session HTTP et synchronisation ; ajout et retrait d\'appareils.'],
     ['<code>services/keystore.py</code>', '<code>KeyStore</code> : identité de l\'appareil et trousseau local, phrase de passe, migration de l\'ancienne clé.'],
+    ['<code>services/bench.py</code>', 'Mesure du débit (<code>dscs bench</code>) : données aléatoires, supprimées ensuite, hors du coffre.'],
     ['<code>services/devices.py</code>', 'Rejoindre un coffre : par invitation (<code>join_vault</code>) ou par kit de secours (<code>recover_vault</code>).'],
     ['<code>services/setup.py</code>', '<code>initialize()</code> et <code>probe_webhook()</code>, utilisés par <code>dscs init</code>.'],
 ]) ?>
