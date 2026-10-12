@@ -1,0 +1,66 @@
+// $c->code($lang, $code, $titre) — bouton « copier » ajouté par app.js
+.code {
+  position: relative;
+  margin: $space-4 0 $space-5;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.code__title {
+  padding: $space-2 $space-4;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: $font-mono;
+  font-size: 0.8rem;
+}
+
+.code__pre {
+  @include scrollbar-thin;
+  margin: 0;
+  padding: $space-4;
+  overflow-x: auto;
+  color: var(--code-text);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  tab-size: 4;
+}
+
+.code__copy {
+  position: absolute;
+  top: $space-2;
+  right: $space-2;
+  padding: $space-1 $space-2;
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition;
+
+  .code:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &.is-done {
+    color: var(--tip);
+  }
+}
+
+.code__title + .code__pre + .code__copy,
+.code__title ~ .code__copy {
+  top: 2.6rem;
+}
+
+.tok-comment {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.path {
+  word-break: break-all;
+}

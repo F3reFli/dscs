@@ -1,0 +1,47 @@
+.toc {
+  @include scrollbar-thin;
+  position: sticky;
+  top: $topbar-height;
+  height: calc(100vh - #{$topbar-height});
+  overflow-y: auto;
+  padding: $space-6 $space-4;
+  font-size: 0.85rem;
+
+  @include below($bp-lg) {
+    display: none;
+  }
+}
+
+.toc__title {
+  margin: 0 0 $space-2;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.toc__list {
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--border);
+  list-style: none;
+}
+
+.toc__item a {
+  display: block;
+  margin-left: -1px;
+  padding: $space-1 $space-3;
+  border-left: 2px solid transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+
+  &:hover,
+  &.is-active {
+    border-left-color: var(--accent);
+    color: var(--text);
+  }
+}
+
+.toc__item--h3 a {
+  padding-left: $space-5;
+}

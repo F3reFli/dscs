@@ -1,0 +1,45 @@
+// Grille : sidebar | contenu | table des matières
+.shell {
+  display: grid;
+  grid-template-columns: $sidebar-width minmax(0, 1fr) $toc-width;
+  min-height: calc(100vh - #{$topbar-height});
+
+  @include below($bp-lg) {
+    grid-template-columns: $sidebar-width minmax(0, 1fr);
+  }
+
+  @include below($bp-md) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.main {
+  min-width: 0;
+  padding: $space-6 $space-7 $space-7;
+
+  &:focus {
+    outline: none;
+  }
+
+  @include below($bp-md) {
+    padding: $space-5 $space-4 $space-6;
+  }
+}
+
+.skip-link {
+  @include visually-hidden;
+
+  &:focus {
+    position: fixed !important;
+    z-index: 100;
+    top: $space-2;
+    left: $space-2;
+    width: auto;
+    height: auto;
+    padding: $space-2 $space-3;
+    clip: auto;
+    border-radius: $radius;
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+}

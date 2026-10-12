@@ -1,0 +1,19 @@
+// $c->kbd('j') / $c->kbd('Ctrl', 'C')
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: $radius-sm;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.8em;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.kbd-plus {
+  margin: 0 0.2em;
+  color: var(--text-muted);
+}

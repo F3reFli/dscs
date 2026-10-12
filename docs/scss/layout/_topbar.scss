@@ -1,0 +1,107 @@
+.topbar {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  height: $topbar-height;
+  padding: 0 $space-5;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: inset 0 2px 0 var(--accent);  // liseré rouge en haut de page
+
+  @include below($bp-md) {
+    padding: 0 $space-3;
+  }
+}
+
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: $space-2;
+  color: var(--text);
+  text-decoration: none;
+
+  .brand__logo {
+    flex: none;
+    align-self: center;
+  }
+
+  .brand__name {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .brand__tagline {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+
+    @include below($bp-lg) {
+      display: none;
+    }
+  }
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+}
+
+// icône du thème : soleil en sombre, lune en clair
+.icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] {
+  .icon-sun {
+    display: block;
+  }
+
+  .icon-moon {
+    display: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    .icon-sun {
+      display: block;
+    }
+
+    .icon-moon {
+      display: none;
+    }
+  }
+}
+
+// après .icon-btn, sinon son display: inline-flex l'emporte
+.topbar__menu {
+  display: none;
+
+  @include below($bp-md) {
+    display: inline-flex;
+  }
+}

@@ -1,0 +1,29 @@
+// Point d'entrée -> public/assets/css/app.css
+// scssphp ne gère pas les modules : @import uniquement (pas de @use, @forward, sass:math).
+// Couleurs : custom properties (thème clair/sombre à l'exécution). Le reste : variables SCSS.
+
+@import "abstracts/tokens";
+@import "abstracts/mixins";
+
+@import "base/reset";
+@import "base/typography";
+
+@import "layout/shell";
+@import "layout/topbar";
+@import "layout/sidebar";
+@import "layout/toc";
+@import "layout/pager";
+@import "layout/footer";
+
+@import "components/badge";
+@import "components/callout";
+@import "components/cards";
+@import "components/code";
+@import "components/diagram";
+@import "components/kbd";
+@import "components/search";
+@import "components/settings";
+@import "components/steps";
+@import "components/table";
+
+@import "utilities";

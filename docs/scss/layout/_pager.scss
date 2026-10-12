@@ -1,0 +1,37 @@
+.pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  max-width: $content-max;
+  margin-top: $space-7;
+}
+
+.pager__link {
+  display: flex;
+  flex-direction: column;
+  padding: $space-3 $space-4;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color $transition;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.pager__link--next {
+  grid-column: 2;
+  text-align: right;
+}
+
+.pager__label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.pager__title {
+  color: var(--accent);
+  font-weight: 600;
+}

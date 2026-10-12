@@ -1,0 +1,43 @@
+// $c->callout('note' | 'tip' | 'warning' | 'danger', $html, $titre)
+.callout {
+  --callout-color: var(--note);
+  margin: $space-5 0;
+  padding: $space-3 $space-4;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--callout-color);
+  border-radius: $radius;
+  background: var(--bg-soft);
+
+  > :last-child,
+  .callout__body > :last-child {
+    margin-bottom: 0;
+  }
+
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}
+
+.callout__title {
+  margin: 0 0 $space-1;
+  color: var(--callout-color);
+  font-weight: 700;
+}
+
+.callout--tip {
+  --callout-color: var(--tip);
+}
+
+.callout--warning {
+  --callout-color: var(--warning);
+}
+
+.callout--danger {
+  --callout-color: var(--danger);
+}
+
+.dev-error {
+  max-width: none;
+  margin-top: 0;
+}

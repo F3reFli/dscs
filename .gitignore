@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Données DSCS locales (si DSCS_HOME pointe dans le dépôt) — ne jamais versionner
+key
+config.toml
+index.db*
+index.lock
+
+# Docs PHP
+docs/vendor/
+docs/var/
+
+# Archives
+*.tar
+*.tar.gz
+docs/tools/
+
+# AI
+CLAUDE.md
+.claude/
+docs/QUESTIONS.md
+

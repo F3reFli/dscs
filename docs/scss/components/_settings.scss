@@ -1,0 +1,70 @@
+// Panneau « Paramètres » en bas de la sidebar : langue, thème.
+// Toujours visible en bas de la sidebar (voir layout/_sidebar.scss).
+.settings {
+  flex: none;
+  padding: $space-3 $space-4 $space-4;
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+
+  .sidebar__title {
+    margin-bottom: $space-3;
+  }
+}
+
+.settings__icon {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: $space-1;
+  vertical-align: -0.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.settings__group + .settings__group {
+  margin-top: $space-3;
+}
+
+.settings__label {
+  display: block;
+  margin-bottom: $space-1;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+// Contrôle segmenté : liens (langue) ou boutons (thème)
+.segmented {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  background: var(--bg);
+}
+
+.segmented__item {
+  flex: 1;
+  padding: $space-1 $space-2;
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background $transition, color $transition;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}

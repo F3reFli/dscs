@@ -1,0 +1,35 @@
+// $c->cards([...])
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: $space-4;
+  margin: $space-5 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  padding: $space-4;
+  border: 1px solid var(--border);
+  border-radius: $radius-lg;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color $transition, transform $transition;
+
+  &:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+}
+
+.card__title {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.card__text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

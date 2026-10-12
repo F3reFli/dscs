@@ -1,0 +1,71 @@
+// Recherche plein texte (données : /search.json, logique : app.js)
+.search {
+  position: relative;
+  margin-left: auto;
+  width: min(22rem, 40vw);
+
+  @include below($bp-md) {
+    width: auto;
+    flex: 1;
+  }
+}
+
+.search__input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 $space-3;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  background: var(--bg-soft);
+
+  &:focus {
+    @include focus-ring;
+    outline-offset: 0;
+  }
+}
+
+.search__results {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + #{$space-2});
+  right: 0;
+  left: 0;
+  max-height: 60vh;
+  margin: 0;
+  padding: $space-1;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: $radius;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  list-style: none;
+
+  a {
+    display: block;
+    padding: $space-2 $space-3;
+    border-radius: $radius-sm;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  [aria-selected="true"] a,
+  a:hover {
+    background: var(--accent-soft);
+  }
+
+  small {
+    display: block;
+    color: var(--text-muted);
+  }
+
+  mark {
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+.search__empty {
+  padding: $space-2 $space-3;
+  color: var(--text-muted);
+}

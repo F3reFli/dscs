@@ -1,0 +1,98 @@
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+
+  &.is-broken {
+    color: var(--danger);
+    text-decoration-style: wavy;
+  }
+}
+
+code,
+kbd,
+pre {
+  font-family: $font-mono;
+  font-size: 0.9em;
+}
+
+.eyebrow {
+  margin: 0 0 $space-2;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+// Contenu rédigé (pages de content/)
+.prose {
+  max-width: $content-max;
+
+  h1 {
+    margin: 0 0 $space-3;
+    font-size: 2.1rem;
+    line-height: 1.2;
+  }
+
+  h2,
+  h3 {
+    position: relative;
+    line-height: 1.3;
+  }
+
+  h2 {
+    margin: $space-7 0 $space-4;
+    padding-bottom: $space-2;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    margin: $space-6 0 $space-3;
+    font-size: 1.2rem;
+  }
+
+  p,
+  ul,
+  ol {
+    margin: 0 0 $space-4;
+  }
+
+  li + li {
+    margin-top: $space-1;
+  }
+
+  :not(pre) > code {
+    padding: 0.1em 0.35em;
+    border-radius: $radius-sm;
+    background: var(--code-bg);
+    color: var(--code-text);
+  }
+
+  hr {
+    margin: $space-6 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+}
+
+.lead {
+  margin: 0 0 $space-6;
+  color: var(--text-muted);
+  font-size: 1.15rem;
+}
+
+.heading-anchor {
+  margin-left: $space-2;
+  color: var(--text-muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity $transition;
+
+  h2:hover &,
+  h3:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,58 @@
+// Thème : sombre (noir et rouge) par défaut, posé par le script de layout.php (data-theme) ; « Auto » suit le
+// système. Sans JavaScript : clair, ou sombre si le système le demande.
+:root {
+  @include theme-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    @include theme-dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  @include theme-dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: $topbar-height + $space-4;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: $font-sans;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  @include focus-ring;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

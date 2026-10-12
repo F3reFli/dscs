@@ -1,0 +1,36 @@
+/* DSCS — styles de l'interface. $dscs-accent = tui/theme.py:ACCENT */
+$dscs-accent: #ff79c6;
+
+Screen { background: $background; }
+VimTree, RemoteTable { height: 1fr; border: none; }
+ModalScreen { align: center middle; background: $background 60%; }
+
+.dialog {
+    width: 70; max-width: 95%; height: auto; max-height: 95%;
+    padding: 1 2; border: round $dscs-accent; background: $surface;
+    overflow-y: auto;  /* petits terminaux : le contenu défile, les boutons restent atteignables */
+}
+.dialog.wide { width: 90; }
+.dlg-title { text-style: bold; color: $dscs-accent; margin-bottom: 1; }
+.dlg-body { max-height: 16; overflow-y: auto; color: $text-muted; }
+.dlg-summary { margin-top: 1; text-style: bold; }
+.dlg-buttons { height: auto; margin-top: 1; align-horizontal: right; }
+.dlg-buttons Button { margin-left: 2; }
+
+#current { margin-bottom: 1; }
+#bar { margin-bottom: 1; }
+#log { height: 10; border: round $panel; }
+.dim { color: $text-muted; }
+.dlg-label { margin-top: 1; color: $text-muted; }
+
+/* onglet Distant */
+WebhookPanel { height: auto; max-height: 8; padding: 0 1 1 1; border-bottom: solid $panel; }
+
+/* écran d'envoi */
+#hooks { height: auto; max-height: 8; border: round $panel; }
+
+/* écran de téléchargement */
+#dirs { height: 7; border: round $panel; }
+#keep { margin-top: 0; }
+#preview { margin-top: 0; }
+

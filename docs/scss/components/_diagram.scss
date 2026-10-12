@@ -1,0 +1,96 @@
+// Schémas SVG inline : <figure class="diagram"><svg>…</svg><figcaption>…</figcaption></figure>
+// Les éléments du SVG utilisent ces classes : les couleurs suivent le thème.
+.diagram {
+  @include scrollbar-thin;
+  margin: $space-5 0;
+  padding: $space-4;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: $radius-lg;
+  background: var(--bg-soft);
+
+  svg {
+    width: 100%;
+    min-width: 34rem;
+    height: auto;
+    font-family: $font-sans;
+  }
+
+  figcaption {
+    margin-top: $space-3;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+}
+
+.diagram__box {
+  fill: var(--bg-elevated);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.diagram__box--accent {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+}
+
+.diagram__loop {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+
+.diagram__label {
+  fill: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.diagram__sub {
+  fill: var(--text-muted);
+  font-size: 12px;
+}
+
+.diagram__tier {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.diagram__msg {
+  fill: var(--text);
+  font-family: $font-mono;
+  font-size: 11.5px;
+}
+
+.diagram__line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.diagram__line--return {
+  stroke-dasharray: 5 4;
+}
+
+.diagram__line--accent {
+  stroke: var(--accent);
+}
+
+.diagram__lifeline {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.diagram__arrowhead {
+  fill: var(--text-muted);
+}
+
+.diagram__arrowhead--accent {
+  fill: var(--accent);
+}

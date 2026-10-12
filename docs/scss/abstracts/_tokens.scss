@@ -1,0 +1,71 @@
+// Design tokens.
+// - Valeurs fixes (espacements, tailles, breakpoints) : variables SCSS.
+// - Couleurs : custom properties, redéfinies pour le thème sombre.
+//   Noir et rouge, comme le logo : rouge du cadenas pour l'accent, noir profond en thème sombre (par défaut).
+
+// ---------------------------------------------------------------- dimensions
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.5rem;
+$space-6: 2rem;
+$space-7: 3rem;
+
+$radius-sm: 4px;
+$radius: 8px;
+$radius-lg: 12px;
+
+$topbar-height: 3.5rem;
+$sidebar-width: 16rem;
+$toc-width: 14rem;
+$content-max: 46rem;
+
+$bp-md: 768px;   // sidebar en tiroir en dessous
+$bp-lg: 1200px;  // TOC masquée en dessous
+
+$font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+$font-mono: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+$transition: 150ms ease;
+
+// ---------------------------------------------------------------- couleurs
+@mixin theme-light {
+  --bg: #ffffff;
+  --bg-soft: #f8f5f5;
+  --bg-elevated: #ffffff;
+  --border: #ebdfe0;
+  --text: #121214;
+  --text-muted: #5a5a63;
+  --accent: #c8102e;
+  --accent-soft: rgba(200, 16, 46, 0.08);
+  --accent-contrast: #ffffff;
+  --code-bg: #f7f3f3;
+  --code-text: #1d1d22;
+  --note: #2563eb;
+  --tip: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --shadow: 0 8px 24px rgba(20, 0, 4, 0.08);
+  color-scheme: light;
+}
+
+@mixin theme-dark {
+  --bg: #0b0b0d;
+  --bg-soft: #070708;
+  --bg-elevated: #141417;
+  --border: #2a1a1d;
+  --text: #f2f2f3;
+  --text-muted: #a1a1aa;
+  --accent: #ff2a3d;
+  --accent-soft: rgba(255, 42, 61, 0.14);
+  --accent-contrast: #0b0b0d;
+  --code-bg: #050506;
+  --code-text: #e8e8ea;
+  --note: #60a5fa;
+  --tip: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ff4d5e;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}

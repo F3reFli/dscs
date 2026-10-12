@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dscs"
+version = "0.3.1"
+description = "DSCS (Discord Server Cloud Storage) — stockage chiffré sur un serveur Discord via webhooks, avec une TUI façon arbre vim"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["textual>=0.80", "aiohttp>=3.9", "cryptography>=42"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+media = ["cairosvg>=2.7", "pillow>=10"]  # captures et GIF du README (scripts/make_media.py)
+
+[project.scripts]
+dscs = "dscs.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"dscs.tui" = ["*.tcss"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["tui: scénario complet de l'interface Textual (plus lent)"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
