@@ -35,7 +35,7 @@ SH) ?>
 
 <?= $c->code('bash', <<<'SH'
 dscs --version
-# dscs 0.3.1
+# dscs 0.4.1
 SH) ?>
 
 <?= $c->callout('tip', '<p>Pour travailler sur le code lui-même, utilise plutôt <code>make install</code> : voir ' . $c->link('dev/contribuer') . '.</p>') ?>

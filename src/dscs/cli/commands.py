@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from ..config import Paths
+from ..config import Paths, load_settings
 from ..discord import is_official_url
 from ..errors import DSCSError
 from ..models import WebhookRef
@@ -41,6 +41,8 @@ def open_vault(passphrase=prompts.passphrase) -> Vault:
     """Ouvre le coffre en demandant la phrase de passe seulement si l'appareil est protégé."""
     vault = Vault.open(passphrase=passphrase)
     vault.notify = lambda message: print(f"⚠ {message}", file=sys.stderr)
+    for message in vault.notices:
+        vault.notify(message)
     if vault.keystore and vault.keystore.migrated_legacy_key:
         print(
             "ℹ Ta clé a été transférée dans le trousseau de cet appareil "
@@ -115,18 +117,22 @@ async def _put(vault: Vault, paths: list[Path], webhooks: list[str] | None = Non
     if not plan.items:
         print("Rien à envoyer.")
         return 1
-    errors = 0
     async with vault.connected():
         selected = vault.resolve_webhooks(webhooks) if webhooks else None
-        for item in plan.items:
-            bar = TextProgress(item.path.name, item.size)
-            try:
-                rec = await vault.upload(item, on_progress=bar, webhooks=selected)
-                bar.finish(f"✓ [{rec.id}] {rec.path}  ({human(rec.size)})")
-            except (DSCSError, OSError) as e:
-                errors += 1
-                bar.finish(f"✗ {item.path.name} : {e}")
-    return 1 if errors else 0
+        count = len(plan.items)
+        bar = TextProgress(plan.items[0].path.name if count == 1 else f"{count} fichiers", plan.total_bytes)
+
+        def done(item, result) -> None:
+            if isinstance(result, Exception):
+                bar.log(f"✗ {item.path.name} : {result}")
+            else:
+                bar.log(f"✓ [{result.id}] {result.path}  ({human(result.size)})")
+
+        results = await vault.upload_many(plan.items, on_progress=bar, on_result=done, webhooks=selected)
+        speed = bar.speed  # avant la publication du coffre (en sortant du bloc)
+    sent = sum(1 for r in results if not isinstance(r, Exception))
+    bar.finish(f"{sent}/{count} envoyé(s), {human(plan.total_bytes)} à {human(speed)}/s")
+    return 0 if sent == count else 1
 
 
 def cmd_ls(args: argparse.Namespace) -> int:
@@ -226,6 +232,41 @@ def cmd_webhooks(args: argparse.Namespace) -> int:
     if any(not (i.server_label and i.channel_label) for i in infos):
         print("Discord ne donne pas aux webhooks le nom de leur serveur ni de leur salon : tu peux les nommer")
         print("dans config.toml, sections [servers] et [channels] (\"identifiant\" = \"nom\").")
+    return 0
+
+
+def cmd_webhooks_rm(args: argparse.Namespace) -> int:
+    with open_vault() as vault:
+        [wid] = vault.resolve_webhooks([args.webhook])
+        info = next(i for i in vault.webhook_infos() if i.id == wid)
+        files = vault.files_on_webhook(wid)
+        print(f"Retirer {info.display_name} ({wid}, {info.channel}) du coffre, sur tous les appareils.")
+        if files:
+            print(f"Ses morceaux seront perdus : {len(files)} fichier(s) supprimé(s) du coffre "
+                  f"({human(sum(r.size for r in files))}) :")
+            for rec in files[:20]:
+                print(f"  {rec.path}")
+            if len(files) > 20:
+                print(f"  … et {len(files) - 20} autre(s)")
+        if not args.yes and not prompts.confirm("Continuer ?"):
+            return 1
+
+        async def run():
+            async with vault.connected():
+                return await vault.remove_webhook(wid, repair=args.repair)
+
+        res = asyncio.run(run())
+    print(f"  ✓ {info.display_name} retiré du coffre ({len(res.files)} fichier(s) supprimé(s))")
+    if res.relocated:
+        print("  ✓ point d'entrée du coffre recréé sur un autre webhook")
+        if any(m.role != "recovery" and m.id != vault.device_id for m in vault.members()):
+            print("  ℹ Autres appareils : « dscs device invite » ici, puis « dscs device join <invitation> » "
+                  "sur chacun.")
+    if res.leftovers:
+        print(f"  ⚠ {res.leftovers} message(s) restent dans son salon Discord (webhook déjà supprimé ?) : "
+              "supprime le salon, ou ces messages, à la main.")
+    if not res.config_updated and wid in {w.id for w in load_settings(vault.paths.config_file).webhooks}:
+        print("  ⚠ son URL est encore dans config.toml : retire-la (elle est ignorée en attendant).")
     return 0
 
 

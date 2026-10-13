@@ -7,12 +7,12 @@ $page->title = 'Commands';
 $page->description = 'Complete reference of every dscs subcommand: synopsis, arguments, output and exit codes.';
 ?>
 <p>Usage guide with examples: <?= $c->link('guide/cli') ?>. This page follows the exact definition of the commands
-(<code>src/dscs/cli/parser.py</code>). The built-in help (<code>--help</code>) is in French.</p>
+(<code>src/dscs/cli/parser.py</code>). The built-in help (<code>--help</code>) is in English; other messages are in French.</p>
 
 <h2>Synopsis</h2>
 
 <?= $c->code('text', <<<'TXT'
-dscs [-h] [-V] COMMANDE ...
+dscs [-h] [-V] <command> [<args>]
 
 dscs [FOLDER]                interface (shortcut for "dscs tui")
 dscs tui [FOLDER]
@@ -22,7 +22,7 @@ dscs ls
 dscs get ID [-o FOLDER] [--flat]
 dscs rm ID [-y]
 dscs gc
-dscs webhooks
+dscs webhooks [list | rm WEBHOOK [-y] [--repair]]
 dscs bench [-s MB] [-w WEBHOOK]... [-p N] [--download] [-y]
 dscs sync
 dscs device [show | init | add | join | list | revoke | recover | passphrase]
@@ -105,6 +105,13 @@ dscs instance.</p>
 <code>https://discord.com/channels/…</code> link. Asks Discord (name, server and channel IDs) and updates the local cache.
 Readable names come from <code>config.toml</code> (<?= $c->link('reference/config', null, 'servers-and-channels') ?>).
 Code <code>1</code> if the vault has no webhook.</p>
+
+<?= $c->code('text', 'dscs webhooks rm WEBHOOK [-y] [--repair]') ?>
+<p>Removes a webhook (ID or name) from the vault, on every device, from its cache and from <code>config.toml</code>.
+Files with chunks on it are deleted from the vault (list shown before confirmation, unless <code>-y</code>), and so are its
+messages on Discord if it still exists. If it holds the vault's entry point, that is recreated on another webhook; with
+other devices, this needs <code>--repair</code>, then <code>dscs device join</code> on each of them. Refused for the vault's
+last webhook.</p>
 
 <h2><code>bench</code></h2>
 <?= $c->code('text', 'dscs bench [-s MB] [-w WEBHOOK]... [-p N] [--download] [-y]') ?>

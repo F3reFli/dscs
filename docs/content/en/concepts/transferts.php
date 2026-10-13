@@ -85,15 +85,16 @@ $page->description = 'Exactly what happens during an upload, a download, a delet
 <?= $c->steps([
     '<p><strong>Plan</strong> (<code>plan_upload</code>): the selection is expanded into a list of files. Each folder keeps its structure under its own name (<code>project/src</code>); internal symbolic links are skipped; duplicates removed. The plan gives the total bytes and chunks shown at confirmation.</p>',
     '<p><strong>Registration</strong>: a <code>files</code> row is created with <code>complete = 0</code> and a random <code>uid</code>. It stays invisible until the upload has finished.</p>',
-    '<p><strong>Producer</strong>: reads the file in chunks of <code>chunk_size_mb</code>, updates the SHA-256, encrypts each chunk (in a thread, so as not to block the interface) and puts it in a queue bounded to two chunks per webhook: memory use stays low, even for a very large file.</p>',
-    '<p><strong>Workers</strong>: one per webhook. Each takes the next chunk from the queue, uploads it, then records it in the index <em>immediately</em> and reports progress.</p>',
+    '<p><strong>Producer</strong>: reads the files one after the other in chunks of <code>chunk_size_mb</code>, updates their SHA-256, encrypts each chunk (in a thread, so as not to block the interface) and puts it in <em>a single</em> queue for the whole upload, bounded to two chunks per webhook: memory use stays low, even for a very large file.</p>',
+    '<p><strong>Workers</strong>: one per selected webhook. Each takes the next chunk from the queue, whatever its file, uploads it, then records it in the index <em>immediately</em> and reports progress. So every webhook works at the same time, even with many single-chunk small files, and moves on to the next file without a pause (like <code>dscs bench</code>).</p>',
     '<p><strong>Final check</strong>: if the number of bytes read differs from the announced size (file modified during the upload), the upload fails. Otherwise the SHA-256 is recorded and the file switches to <code>complete = 1</code>.</p>',
 ]) ?>
 
 <h3>Failure and cancellation</h3>
 
-<p>If a chunk cannot be uploaded (Discord error, unreadable file…) or if the user cancels, all workers stop and
-<code>purge_file</code> deletes the chunks already uploaded from Discord. An upload <em>in flight</em> at the moment of
+<p>If a chunk cannot be uploaded (Discord error, unreadable or modified file…), only its file fails: its next chunks are
+skipped, <code>purge_file</code> deletes those already uploaded from Discord, and the other files go on. If the user
+cancels, finished files are kept and the chunks of files in progress are deleted. An upload <em>in flight</em> at the moment of
 cancellation may still succeed on Discord's side: dscs waits for its answer (up to 120 s) to record it in the index, so that
 it can delete it too.</p>
 

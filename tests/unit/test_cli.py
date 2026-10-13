@@ -1,13 +1,16 @@
+import re
+
 import pytest
 
 from dscs import __version__
 from dscs.cli import commands, main
-from dscs.cli.parser import build_parser
+from dscs.cli.parser import COMMANDS, build_parser
 
 
 @pytest.mark.parametrize(
     ("argv", "command"),
-    [(["ls"], "ls"), (["gc"], "gc"), (["get", "3", "-o", "/tmp"], "get"), (["rm", "3", "-y"], "rm")],
+    [(["ls"], "ls"), (["gc"], "gc"), (["get", "3", "-o", "/tmp"], "get"), (["rm", "3", "-y"], "rm"),
+     (["webhooks", "rm", "papa", "-y"], "webhooks")],
 )
 def test_subcommands(argv, command):
     assert build_parser().parse_args(argv).command == command
@@ -109,3 +112,54 @@ def test_banner_never_wider_than_the_terminal(columns):
     for lines, _ in steps:
         for line in lines:
             assert len(re.sub(r"\x1b\[[\d;]*m", "", line)) <= columns
+
+
+def _help(argv: list[str], capsys) -> str:
+    with pytest.raises(SystemExit):
+        main([*argv, "-h"])
+    return capsys.readouterr().out
+
+
+def _all_commands() -> list[list[str]]:
+    """Chaque commande et sous-commande de dscs, comme on la tape."""
+    import argparse
+
+    found = []
+
+    def walk(parser, prefix):
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                for name, sub in action.choices.items():
+                    found.append([*prefix, name])
+                    walk(sub, [*prefix, name])
+
+    walk(build_parser(), [])
+    return found
+
+
+@pytest.mark.parametrize("argv", [[], *_all_commands()], ids=lambda a: " ".join(a) or "dscs")
+def test_help_is_in_english_without_real_names(argv, capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "80")
+    out = _help(argv, capsys)
+    assert max(len(line) for line in out.splitlines()) <= 80, "lisible dans un terminal de 80 colonnes"
+    assert not re.search(r"[àâçéèêëîïôûùüœ«»]", out), "aide en anglais (pas d'accents ni de guillemets français)"
+    for word in ("coffre", "fichier", "dossier", "défaut", "appareil", "papa", "Stockage"):
+        assert word not in out
+
+
+def test_main_help_is_grouped(capsys):
+    out = _help([], capsys)
+    sections = ["Getting started:", "Files:", "Webhooks:", "Sharing & keys:", "Options:", "Examples:", "TUI keys:"]
+    positions = [out.index(title) for title in sections]
+    assert positions == sorted(positions)
+    for command in COMMANDS:
+        assert re.search(rf"^  {command}\b", out, re.M), f"{command} est listée"
+    assert "dscs <command> -h" in out
+    assert max(len(line) for line in out.splitlines()) <= 80, "lisible dans un terminal de 80 colonnes"
+
+
+def test_webhooks_help_explains_removal(capsys):
+    out = _help(["webhooks"], capsys)
+    assert "dscs webhooks rm <webhook_name>" in out and "config.toml" in out
+    out = _help(["webhooks", "rm"], capsys)
+    assert "--repair" in out and "at least one chunk on it are deleted" in out and "Examples:" in out

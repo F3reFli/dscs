@@ -5,7 +5,7 @@ from .bench import BenchReport
 from .devices import join_vault, recover_vault, relink_vault
 from .keystore import NO_KEYRING_HELP, KeyStore, default_device_name
 from .setup import InitResult, initialize, probe_webhook
-from .vault import GcReport, Vault
+from .vault import GcReport, Vault, WebhookRemoval
 
 __all__ = [
     "NO_KEYRING_HELP",
@@ -19,6 +19,7 @@ __all__ = [
     "SuperblockLostError",
     "SyncReport",
     "Vault",
+    "WebhookRemoval",
     "join_vault",
     "recover_vault",
     "relink_vault",

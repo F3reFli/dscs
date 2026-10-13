@@ -99,6 +99,9 @@ def test_public_key_text_and_code():
 
 # ---------------------------------------------------------------------- trousseau
 
+HOOK_1 = "https://discord.com/api/webhooks/1/tokA"
+HOOK_2 = "https://discord.com/api/webhooks/2/tokB"
+
 
 def test_keyring_rotation_keeps_old_keys():
     ring = Keyring.create(generate_identity("pc"))
@@ -145,3 +148,18 @@ def test_keyring_keeps_newest_superblock_address_and_roles():
     assert a.superblock == b.superblock == moved.superblock, "l'adresse recréée l'emporte, dans les deux sens"
     assert Keyring.from_bytes(a.to_bytes()).members[rescue.id].role == "recovery"
     assert "role" not in json.dumps(Keyring.create(owner)._doc()), "format inchangé pour les appareils normaux"
+
+
+def test_removed_webhook_stays_removed():
+    a = Keyring.create(generate_identity("pc"), webhooks=[HOOK_1, HOOK_2])
+    b = Keyring.from_bytes(a.to_bytes())  # autre appareil, qui ne sait pas encore
+    assert "removed_webhooks" not in json.dumps(a._doc()), "format inchangé tant que rien n'est retiré"
+    revision = a.revision
+    assert a.remove_webhook("2") and not a.remove_webhook("2")
+    assert a.webhooks == [HOOK_1] and a.revision == revision + 1
+    assert not a.add_webhooks([HOOK_2]), "un webhook retiré ne revient pas par config.toml"
+    assert Keyring.from_bytes(a.to_bytes()).removed_webhooks.keys() == {"2"}
+    b.merge(a)
+    a.merge(Keyring.from_bytes(b.to_bytes()))
+    assert a.webhooks == b.webhooks == [HOOK_1], "la suppression l'emporte sur l'union, dans les deux sens"
+    assert a.same_content(b)

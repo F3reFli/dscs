@@ -71,6 +71,7 @@ dscs get 12 -o ~/Bureau         # récupérer (--flat : sans recréer le dossier
 dscs rm 12                      # supprimer de Discord (-y : sans confirmation)
 dscs gc                         # nettoyer les envois interrompus
 dscs webhooks                   # webhooks du coffre : serveur, salon, lien
+dscs webhooks rm papa           # retirer un webhook du coffre, partout (et les fichiers qui en dépendent)
 dscs bench                      # mesurer le débit d'envoi (données de test, supprimées ensuite)
 ```
 

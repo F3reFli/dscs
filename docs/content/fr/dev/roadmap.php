@@ -12,10 +12,11 @@ $page->description = 'Les évolutions prévues, par ordre de valeur, avec ce qu\
 
 <h2>1. Envoi plus rapide</h2>
 
-<p><strong>Problème</strong> : les fichiers partent l'un après l'autre ; un petit fichier n'occupe qu'un webhook. Avec
-beaucoup de petits fichiers, Discord limite le nombre de messages par salon bien avant le débit.</p>
-<p><strong>Pistes</strong> : envoyer plusieurs fichiers en même temps sur tous les webhooks, avec un plafond de mémoire
-réglable ; alléger la synchronisation (index directement dans le superbloc quand il est petit).</p>
+<p><strong>Fait en 0.4</strong> : les morceaux de tous les fichiers d'un envoi passent dans une même file, et tous les
+webhooks choisis travaillent en même temps, même avec beaucoup de petits fichiers.</p>
+<p><strong>Reste</strong> : avec beaucoup de petits fichiers, Discord limite le nombre de messages par salon bien avant le
+débit (voir le regroupement ci-dessous) ; plafond de mémoire réglable ; synchronisation allégée (index directement dans
+le superbloc quand il est petit).</p>
 
 <h2>2. Regroupement des petits fichiers</h2>
 

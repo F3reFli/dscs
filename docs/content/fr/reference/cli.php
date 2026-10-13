@@ -7,12 +7,13 @@ $page->title = 'Commandes';
 $page->description = 'Référence complète de chaque sous-commande de dscs : synopsis, arguments, sorties et codes de retour.';
 ?>
 <p>Guide d'utilisation avec exemples : <?= $c->link('guide/cli') ?>. Cette page reprend la définition exacte des commandes
-(<code>src/dscs/cli/parser.py</code>).</p>
+(<code>src/dscs/cli/parser.py</code>). L'aide intégrée (<code>--help</code>) est en anglais ; les autres messages
+sont en français.</p>
 
 <h2>Synopsis</h2>
 
 <?= $c->code('text', <<<'TXT'
-dscs [-h] [-V] COMMANDE ...
+dscs [-h] [-V] <command> [<args>]
 
 dscs [DOSSIER]               interface (raccourci de « dscs tui »)
 dscs tui [DOSSIER]
@@ -22,7 +23,7 @@ dscs ls
 dscs get ID [-o DOSSIER] [--flat]
 dscs rm ID [-y]
 dscs gc
-dscs webhooks
+dscs webhooks [list | rm WEBHOOK [-y] [--repair]]
 dscs bench [-s MO] [-w WEBHOOK]... [-p N] [--download] [-y]
 dscs sync
 dscs device [show | init | add | join | list | revoke | recover | passphrase]
@@ -104,6 +105,13 @@ seule instance de dscs ouverte.</p>
 <code>https://discord.com/channels/…</code>. Interroge Discord (nom, identifiants du serveur et du salon) et met à jour le
 cache local. Les noms lisibles viennent de <code>config.toml</code> (<?= $c->link('reference/config', null, 'servers-et-channels') ?>).
 Code <code>1</code> si le coffre n'a aucun webhook.</p>
+
+<?= $c->code('text', 'dscs webhooks rm WEBHOOK [-y] [--repair]') ?>
+<p>Retire un webhook (identifiant ou nom) du coffre, sur tous les appareils, de son cache et de <code>config.toml</code>.
+Les fichiers qui ont des morceaux dessus sont supprimés du coffre (liste affichée avant confirmation, sauf <code>-y</code>),
+ainsi que ses messages sur Discord s'il existe encore. S'il porte le point d'entrée du coffre, celui-ci est recréé sur un
+autre webhook ; avec d'autres appareils, il faut <code>--repair</code>, puis <code>dscs device join</code> sur chacun.
+Refusé pour le dernier webhook du coffre.</p>
 
 <h2><code>bench</code></h2>
 <?= $c->code('text', 'dscs bench [-s MO] [-w WEBHOOK]... [-p N] [--download] [-y]') ?>

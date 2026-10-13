@@ -17,6 +17,7 @@ lancement.</p>
 # Plusieurs webhooks (un par salon) = envois en parallèle. Ceux du coffre sont aussi gardés avec ses clés :
 # un appareil qui rejoint le coffre les reçoit sans rien écrire ici.
 # Ne supprime jamais dans Discord un webhook déjà utilisé : ses morceaux deviendraient inaccessibles.
+# Pour en retirer un du coffre (et les fichiers qu'il porte) : dscs webhooks rm <nom ou identifiant>
 webhooks = [
   "https://discord.com/api/webhooks/111111111111111111/AbCd...",
   "https://discord.com/api/webhooks/222222222222222222/EfGh...",
@@ -60,8 +61,17 @@ et fait perdre le point d'entrée du coffre (que dscs recrée). Pour changer de 
 HTML) ?>
 
 <p>Retirer une URL de <code>config.toml</code>, en revanche, ne fait rien perdre : les webhooks du coffre sont mémorisés
-avec ses clés, sur chaque appareil. Pour ne plus utiliser un webhook pour les nouveaux envois, décoche-le dans l'écran
-d'envoi, ou désigne les webhooks voulus avec <code>dscs put -w</code>.</p>
+avec ses clés, sur chaque appareil, et dscs signale à chaque lancement qu'il est encore dans le coffre. Pour ne plus
+l'utiliser pour les nouveaux envois, décoche-le dans l'écran d'envoi, ou désigne les webhooks voulus avec
+<code>dscs put -w</code>.</p>
+
+<h3>Retirer un webhook du coffre</h3>
+
+<p><code>dscs webhooks rm NOM</code> le retire <strong>partout</strong> : du trousseau (les autres appareils l'oublient à
+leur prochaine synchronisation, et il ne revient pas même s'il reste dans une config), du cache, et de
+<code>config.toml</code>. Ses morceaux étant perdus, les fichiers qui en ont au moins un sont supprimés du coffre, avec
+leurs morceaux restés sur les autres webhooks ; la liste est affichée avant confirmation. S'il existe encore dans
+Discord, ses messages sont supprimés ; sinon ils restent dans son salon, à supprimer à la main.</p>
 
 <h3>Choisir les webhooks d'un envoi</h3>
 

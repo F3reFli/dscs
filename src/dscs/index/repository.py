@@ -80,6 +80,27 @@ class Index:
             (webhook_id, name, guild_id, channel_id),
         )
 
+    def forget_webhook(self, webhook_id: str) -> list[StoredFile]:
+        """Webhook retiré du coffre : ses morceaux sont perdus, il sort de l'index (cache compris).
+
+        Les fichiers qui avaient des morceaux dessus deviennent incomplets (leurs morceaux restés sur les autres
+        webhooks sont à supprimer, voir purge_file) et reçoivent une pierre tombale : les autres appareils les
+        oublient à la prochaine synchronisation. Renvoie ceux qui étaient complets.
+        """
+        with transaction(self.conn):
+            rows = self.conn.execute(
+                f"SELECT {_FILE_COLS} FROM files WHERE complete = 1 AND id IN "
+                "(SELECT file_id FROM chunks WHERE webhook_id = ?) ORDER BY id",
+                (webhook_id,),
+            ).fetchall()
+            lost = [StoredFile(*r) for r in rows]
+            for rec in lost:
+                self.add_tombstone(rec.uid)
+                self.mark_incomplete(rec.id)
+            self.conn.execute("DELETE FROM chunks WHERE webhook_id = ?", (webhook_id,))
+            self.conn.execute("DELETE FROM webhooks WHERE id = ?", (webhook_id,))
+        return lost
+
     def add_file(
         self, uid: str, name: str, folder: str, size: int, chunks: int, fmt: int, key_id: str | None
     ) -> int:
@@ -144,6 +165,13 @@ class Index:
             "WHERE f.complete = 1 GROUP BY c.webhook_id"
         ).fetchall()
         return dict(rows)
+
+    def chunks_on_webhook(self, webhook_id: str) -> list[str]:
+        """Messages de tous les morceaux (envois terminés ou non) portés par un webhook."""
+        rows = self.conn.execute(
+            "SELECT message_id FROM chunks WHERE webhook_id = ? ORDER BY file_id, idx", (webhook_id,)
+        ).fetchall()
+        return [r[0] for r in rows]
 
     def webhooks_by_file(self) -> dict[int, list[str]]:
         """Webhooks qui portent les morceaux de chaque fichier complet."""

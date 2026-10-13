@@ -220,11 +220,14 @@ appareils de confiance.
 1. **Plan** (`plan_upload`) : dossiers développés, dossier distant par fichier, liens symboliques internes ignorés.
 2. **Confirmation** côté interface (TUI : écran d'envoi avec choix des webhooks ; CLI : `-w`).
 3. **Enregistrement** : ligne `files` avec `complete = 0`, `uid` aléatoire, `key_id` de la clé courante.
-4. **Producteur** : lit par morceaux de `chunk_size`, met à jour le SHA-256, chiffre (dans un thread), file bornée.
-5. **Workers** (un par webhook choisi) : envoi sous un nom aléatoire, flag `SUPPRESS_NOTIFICATIONS`, morceau inscrit
-   dans l'index **immédiatement**.
-6. **Fin** : taille relue différente → échec ; sinon `complete = 1` et SHA-256 enregistré. Puis push.
-7. **Échec ou annulation** : `purge_file` supprime les morceaux déjà envoyés.
+4. **Producteur** : lit les fichiers l'un après l'autre par morceaux de `chunk_size`, met à jour le SHA-256, chiffre
+   (dans un thread), **une seule file** bornée pour tout l'envoi (`upload_files`).
+5. **Workers** (un par webhook choisi) : prennent le morceau suivant, quel que soit son fichier (tous les webhooks
+   travaillent, même avec des petits fichiers) ; envoi sous un nom aléatoire, flag `SUPPRESS_NOTIFICATIONS`, morceau
+   inscrit dans l'index **immédiatement**.
+6. **Fin d'un fichier** : taille relue différente → échec ; sinon `complete = 1` et SHA-256 enregistré. Push à la fin.
+7. **Échec d'un fichier** : ses morceaux sont purgés, les autres fichiers continuent. **Annulation** : fichiers
+   terminés gardés, `purge_file` pour ceux en cours.
 
 ## Flux d'un téléchargement
 
@@ -272,7 +275,7 @@ test depuis une base N-1 remplie.
 | Suppression | `DELETE {webhook}/messages/{id}` ; 404 toléré lors des purges |
 | Infos webhook | `GET {webhook}` : nom, `guild_id`, `channel_id` (pas les noms du serveur et du salon) |
 | 429 / 5xx / coupures | attente `retry_after` ; backoff 1 s → 30 s, 8 tentatives |
-| Parallélisme | un worker par webhook choisi, les fichiers l'un après l'autre |
+| Parallélisme | un worker par webhook choisi, une file de morceaux commune à tous les fichiers d'un envoi |
 
 Un webhook ne peut relire et supprimer que **ses propres** messages : ne jamais supprimer dans Discord un webhook
 qui a servi.
@@ -300,8 +303,8 @@ DSCSError
 
 ## Feuille de route
 
-1. **Envoi plus rapide** : plusieurs fichiers en parallèle sur tous les webhooks, plafond de mémoire réglable,
-   synchronisation allégée (index dans le superbloc quand il est petit).
+1. **Envoi plus rapide** : (fait en 0.4 : une file commune à tous les fichiers, tous les webhooks en parallèle) ;
+   reste : plafond de mémoire réglable, synchronisation allégée (index dans le superbloc quand il est petit).
 2. **Regroupement des petits fichiers** dans un même morceau (nouveau `CHUNK_FORMAT`).
 3. **Récupération par bot** : lister les salons pour retrouver des messages d'un webhook perdu.
 4. **Reprise d'envoi** après interruption.

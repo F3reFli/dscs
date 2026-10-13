@@ -12,10 +12,11 @@ $page->description = 'Planned improvements, by order of value, with what they so
 
 <h2>1. Faster uploads</h2>
 
-<p><strong>Problem</strong>: files are sent one after the other; a small file only uses one webhook. With many small files,
-Discord limits the number of messages per channel long before bandwidth matters.</p>
-<p><strong>Leads</strong>: upload several files at once on all webhooks, with a configurable memory cap; lighter
-synchronisation (index directly in the superblock when it is small).</p>
+<p><strong>Done in 0.4</strong>: the chunks of every file of an upload go through a single queue, and all selected webhooks
+work at the same time, even with many small files.</p>
+<p><strong>Left</strong>: with many small files, Discord limits the number of messages per channel long before bandwidth
+matters (see grouping below); configurable memory cap; lighter synchronisation (index directly in the superblock when it
+is small).</p>
 
 <h2>2. Grouping small files</h2>
 

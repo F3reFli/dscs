@@ -2,12 +2,13 @@
 
 - toutes les générations de clés de coffre, et la génération courante (celle des nouveaux envois) ;
 - les appareils membres (clés publiques) et les appareils révoqués ;
-- les URLs des webhooks (secrètes : elles donnent le droit d'écrire et de supprimer) ;
+- les URLs des webhooks (secrètes : elles donnent le droit d'écrire et de supprimer), et ceux retirés du coffre ;
 - l'adresse du superbloc (message Discord qui sert de point d'entrée du coffre).
 
 Le trousseau n'existe jamais en clair, ni sur disque ni sur Discord : il est scellé (crypto.sealing) pour chaque
 appareil membre. Une rotation ajoute une clé sans retirer les anciennes : les fichiers déjà envoyés restent lisibles.
-Deux trousseaux du même coffre se fusionnent sans conflit (union des clés, des membres, des révocations).
+Deux trousseaux du même coffre se fusionnent sans conflit (union des clés, des membres, des révocations,
+des webhooks ; un webhook retiré l'est partout, comme un appareil révoqué).
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ import time
 from dataclasses import dataclass, field
 
 from ..errors import CryptoError
+from ..models import WebhookRef
 from .cipher import Cipher
 from .device import DeviceIdentity, device_id
 from .keys import fingerprint, generate_key
@@ -60,6 +62,7 @@ class Keyring:
     webhooks: list[str] = field(default_factory=list)
     superblock: dict[str, str] | None = None  # {"webhook_id": …, "message_id": …, "moved": date si recréé}
     revoked: set[str] = field(default_factory=set)  # identifiants d'appareils retirés du coffre
+    removed_webhooks: dict[str, float] = field(default_factory=dict)  # webhooks retirés du coffre : id -> date
     extra: dict = field(default_factory=dict)  # champs des versions futures, conservés tels quels
 
     # ------------------------------------------------------------------ création / évolution
@@ -102,16 +105,30 @@ class Keyring:
         return member
 
     def add_webhooks(self, urls: list[str]) -> bool:
-        new = [u for u in urls if u not in self.webhooks]
+        """Ajoute des webhooks, sauf ceux retirés du coffre (ils ne reviennent pas). Renvoie True si ajout."""
+        new = [u for u in urls if u not in self.webhooks and WebhookRef.parse(u).id not in self.removed_webhooks]
         self.webhooks.extend(new)
         if new:
             self.revision += 1
         return bool(new)
 
+    def remove_webhook(self, webhook_id: str) -> bool:
+        """Retire un webhook du coffre, définitivement : la fusion avec un trousseau qui l'a encore ne le rend pas."""
+        if webhook_id in self.removed_webhooks and not self._has_webhook(webhook_id):
+            return False
+        self.removed_webhooks.setdefault(webhook_id, time.time())
+        self.webhooks = [u for u in self.webhooks if WebhookRef.parse(u).id != webhook_id]
+        self.revision += 1
+        return True
+
+    def _has_webhook(self, webhook_id: str) -> bool:
+        return any(WebhookRef.parse(u).id == webhook_id for u in self.webhooks)
+
     def merge(self, other: Keyring) -> bool:
         """Fusionne un autre état du même trousseau. Renvoie True si celui-ci a changé.
 
-        Union des clés, des membres et des révocations (une révocation l'emporte), union des webhooks ;
+        Union des clés, des membres et des révocations (une révocation l'emporte), union des webhooks (un webhook
+        retiré l'emporte) ;
         la clé courante est la plus récente. Le résultat ne dépend pas de l'ordre des fusions.
         """
         if other.vault_id != self.vault_id:
@@ -123,7 +140,12 @@ class Keyring:
             self.members.setdefault(mid, member)
         for mid in self.revoked:
             self.members.pop(mid, None)
-        self.webhooks += [u for u in other.webhooks if u not in self.webhooks]
+        for wid, when in other.removed_webhooks.items():
+            self.removed_webhooks[wid] = min(when, self.removed_webhooks.get(wid, when))
+        self.webhooks = [
+            u for u in self.webhooks + [u for u in other.webhooks if u not in self.webhooks]
+            if WebhookRef.parse(u).id not in self.removed_webhooks
+        ]
         self.superblock = newest_superblock(self.superblock, other.superblock)
         self.current = max(self.keys.values(), key=lambda k: (k.created, k.id)).id
         changed = self._content() != before
@@ -171,7 +193,7 @@ class Keyring:
             "webhooks": self.webhooks,
             "superblock": self.superblock,
             "revoked": sorted(self.revoked),
-        }
+        } | ({"removed_webhooks": dict(sorted(self.removed_webhooks.items()))} if self.removed_webhooks else {})
 
     def _content(self) -> str:
         doc = self._doc()
@@ -185,7 +207,7 @@ class Keyring:
     def from_bytes(cls, data: bytes) -> Keyring:
         known = {
             "format", "version", "vault_id", "revision", "current", "keys", "members", "webhooks", "superblock",
-            "revoked",
+            "revoked", "removed_webhooks",
         }
         try:
             doc = json.loads(data)
@@ -208,6 +230,7 @@ class Keyring:
                 webhooks=[str(u) for u in doc.get("webhooks") or []],
                 superblock={str(k): str(v) for k, v in superblock.items()} if superblock else None,
                 revoked={str(r) for r in doc.get("revoked") or []},
+                removed_webhooks={str(k): float(v) for k, v in (doc.get("removed_webhooks") or {}).items()},
                 extra={k: v for k, v in doc.items() if k not in known},
             )
         except CryptoError:

@@ -50,6 +50,8 @@ class DSCSApp(App):
     async def on_mount(self) -> None:
         # pas d'écriture sur le terminal pendant que l'interface l'occupe : avertissements en notification
         self.vault.notify = lambda message: self.notify(message, severity="warning", timeout=20)
+        for message in self.vault.notices:
+            self.vault.notify(message)
         await self.vault.start()
         self.reload_remote()
         self.query_one(VimTree).focus()
@@ -156,24 +158,27 @@ class DSCSApp(App):
 
     @work(exclusive=True, group="transfer")
     async def run_upload(self, plan: UploadPlan, screen: TransferScreen, webhooks: list[str]) -> None:
-        ok = 0
         total = len(plan.items)
+        finished: list[bool] = []  # True : envoyé, False : en échec
+
+        def done(item, result) -> None:
+            finished.append(not isinstance(result, Exception))
+            screen.set_current(f"[{len(finished)}/{total}] {item.path.name}")
+            if isinstance(result, Exception):
+                screen.log_line(f"✗ {item.path.name} : {result}", "red")
+            else:
+                screen.log_line(f"✓ {item.path.name}  ({human(result.size)}, {result.chunks} morceau(x))", "green")
+
+        screen.set_current(f"{total} fichier(s) sur {len(webhooks)} webhook(s) en parallèle")
         try:
-            for i, item in enumerate(plan.items, 1):
-                screen.set_current(f"[{i}/{total}] {item.path.name}")
-                before = screen.done_bytes
-                try:
-                    rec = await self.vault.upload(item, on_progress=screen.advance, webhooks=webhooks)
-                    ok += 1
-                    screen.log_line(f"✓ {item.path.name}  ({human(rec.size)}, {rec.chunks} morceau(x))", "green")
-                except (DSCSError, OSError) as e:
-                    screen.log_line(f"✗ {item.path.name} : {e}", "red")
-                    screen.advance(max(0, item.size - (screen.done_bytes - before)))
+            await self.vault.upload_many(plan.items, on_progress=screen.advance, on_result=done, webhooks=webhooks)
         except asyncio.CancelledError:
-            screen.log_line("Annulé — les morceaux du fichier en cours ont été supprimés.", "yellow")
+            ok = sum(finished)
+            screen.log_line("Annulé — les morceaux des fichiers en cours ont été supprimés.", "yellow")
             screen.finish(f"Annulé · {ok}/{total} envoyé(s)", ok=False)
             self.reload_remote()
             raise
+        ok = sum(finished)
         await self.publish()
         screen.finish(f"Terminé · {ok}/{total} envoyé(s)", ok=ok == total)
         self.query_one(VimTree).clear_marks()

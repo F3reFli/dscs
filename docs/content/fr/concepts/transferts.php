@@ -85,15 +85,16 @@ $page->description = 'Ce qui se passe exactement pendant un envoi, un téléchar
 <?= $c->steps([
     '<p><strong>Plan</strong> (<code>plan_upload</code>) : la sélection est développée en liste de fichiers. Chaque dossier garde sa structure sous son propre nom (<code>projet/src</code>) ; les liens symboliques internes sont ignorés ; les doublons retirés. Le plan donne le total d\'octets et de morceaux affiché à la confirmation.</p>',
     '<p><strong>Enregistrement</strong> : une ligne <code>files</code> est créée avec <code>complete = 0</code> et un <code>uid</code> aléatoire. Elle reste invisible tant que l\'envoi n\'est pas terminé.</p>',
-    '<p><strong>Producteur</strong> : lit le fichier par morceaux de <code>chunk_size_mb</code>, met à jour le SHA-256, chiffre chaque morceau (dans un thread, pour ne pas bloquer l\'interface) et le dépose dans une file d\'attente bornée à deux morceaux par webhook : la mémoire utilisée reste faible, même pour un très gros fichier.</p>',
-    '<p><strong>Workers</strong> : un par webhook. Chacun prend le morceau suivant dans la file, l\'envoie, puis l\'inscrit <em>aussitôt</em> dans l\'index et signale la progression.</p>',
+    '<p><strong>Producteur</strong> : lit les fichiers l\'un après l\'autre par morceaux de <code>chunk_size_mb</code>, met à jour leur SHA-256, chiffre chaque morceau (dans un thread, pour ne pas bloquer l\'interface) et le dépose dans <em>une seule</em> file d\'attente pour tout l\'envoi, bornée à deux morceaux par webhook : la mémoire utilisée reste faible, même pour un très gros fichier.</p>',
+    '<p><strong>Workers</strong> : un par webhook choisi. Chacun prend le morceau suivant dans la file, quel que soit son fichier, l\'envoie, puis l\'inscrit <em>aussitôt</em> dans l\'index et signale la progression. Tous les webhooks travaillent donc en même temps, même avec beaucoup de petits fichiers d\'un seul morceau, et enchaînent sans pause d\'un fichier au suivant (comme <code>dscs bench</code>).</p>',
     '<p><strong>Contrôle final</strong> : si le nombre d\'octets lus diffère de la taille annoncée (fichier modifié pendant l\'envoi), l\'envoi échoue. Sinon le SHA-256 est enregistré et le fichier passe à <code>complete = 1</code>.</p>',
 ]) ?>
 
 <h3>Échec et annulation</h3>
 
-<p>Si un morceau ne peut pas être envoyé (erreur Discord, fichier illisible…) ou si l'utilisateur annule, tous les workers
-s'arrêtent et <code>purge_file</code> supprime de Discord les morceaux déjà envoyés. Un envoi <em>en vol</em> au moment de
+<p>Si un morceau ne peut pas être envoyé (erreur Discord, fichier illisible ou modifié…), seul son fichier échoue :
+ses morceaux suivants sont ignorés, <code>purge_file</code> supprime de Discord ceux déjà envoyés, et les autres fichiers
+continuent. Si l'utilisateur annule, les fichiers terminés sont gardés et les morceaux des fichiers en cours supprimés. Un envoi <em>en vol</em> au moment de
 l'annulation peut quand même aboutir côté Discord : dscs attend sa réponse (jusqu'à 120 s) pour l'inscrire dans l'index,
 afin de pouvoir le supprimer lui aussi.</p>
 

@@ -17,6 +17,7 @@ The comments it contains are in French.</p>
 # Plusieurs webhooks (un par salon) = envois en parallèle. Ceux du coffre sont aussi gardés avec ses clés :
 # un appareil qui rejoint le coffre les reçoit sans rien écrire ici.
 # Ne supprime jamais dans Discord un webhook déjà utilisé : ses morceaux deviendraient inaccessibles.
+# Pour en retirer un du coffre (et les fichiers qu'il porte) : dscs webhooks rm <nom ou identifiant>
 webhooks = [
   "https://discord.com/api/webhooks/111111111111111111/AbCd...",
   "https://discord.com/api/webhooks/222222222222222222/EfGh...",
@@ -60,8 +61,16 @@ point (which dscs recreates). To use a new channel, create a new webhook instead
 HTML) ?>
 
 <p>Removing a URL from <code>config.toml</code>, however, loses nothing: the vault's webhooks are remembered with its keys,
-on each device. To stop using a webhook for new uploads, untick it in the upload screen, or name the webhooks you want with
-<code>dscs put -w</code>.</p>
+on each device, and dscs points out at each start that it is still in the vault. To stop using a webhook for new uploads,
+untick it in the upload screen, or name the webhooks you want with <code>dscs put -w</code>.</p>
+
+<h3>Removing a webhook from the vault</h3>
+
+<p><code>dscs webhooks rm NAME</code> removes it <strong>everywhere</strong>: from the keyring (other devices forget it at
+their next sync, and it does not come back even if a config still lists it), from the cache, and from
+<code>config.toml</code>. Since its chunks are lost, files with at least one chunk on it are deleted from the vault, along
+with their chunks left on the other webhooks; the list is shown before confirmation. If it still exists in Discord, its
+messages are deleted; otherwise they stay in its channel, to be deleted by hand.</p>
 
 <h3>Choosing the webhooks of an upload</h3>
 

@@ -296,7 +296,12 @@ class SyncEngine:
             state = self.index.export_state()
             key = ring.current_key()
             digest = state_digest(state, key.key)
-            index_ok = sb.index is not None and sb.index.key_id == key.id and sb.index.digest == digest
+            # instantané sur un webhook retiré du coffre : republié, sinon illisible pour les appareils à jour
+            known = {WebhookRef.parse(u).id for u in ring.webhooks}
+            index_ok = (
+                sb.index is not None and sb.index.key_id == key.id and sb.index.digest == digest
+                and all(w in known for w, _ in sb.index.parts)
+            )
             keyrings_ok = self._keyrings_up_to_date(sb, ring, identity.id)
             if index_ok and keyrings_ok:
                 return report

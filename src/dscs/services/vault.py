@@ -11,24 +11,25 @@ envoyer et télécharger demandent une clé.
 """
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import aiohttp
 
 from .. import transfer
-from ..config import Paths, Settings, load_settings
+from ..config import Paths, Settings, load_settings, remove_webhook_from_config
 from ..crypto import Cipher, Keyring, Member, PassphraseProvider, VaultKey, generate_identity
 from ..crypto.device import device_id, verification_code
-from ..discord import WebhookPool, new_session
-from ..errors import ConfigError, CryptoError
+from ..discord import WebhookClient, WebhookPool, new_session
+from ..errors import ConfigError, CryptoError, DiscordError, DSCSError
 from ..index import Index, ProcessLock
 from ..models import StoredFile, UploadItem, UploadPlan, WebhookInfo, WebhookRef
 from ..sync import Invitation, RecoveryKit, SyncEngine, SyncReport
-from ..transfer import ProgressCB
+from ..transfer import ProgressCB, ResultCB, UploadResult
 from .bench import BenchReport, run_benchmark
 from .keystore import NO_KEYRING_HELP, KeyStore
 
@@ -37,6 +38,23 @@ from .keystore import NO_KEYRING_HELP, KeyStore
 class GcReport:
     cleaned: int  # envois interrompus entièrement supprimés
     remaining: int  # encore incomplets (morceaux impossibles à supprimer pour l'instant)
+
+
+@dataclass(frozen=True)
+class WebhookRemoval:
+    files: list[StoredFile]  # fichiers supprimés du coffre : ils avaient des morceaux sur ce webhook
+    leftovers: int  # messages restés sur Discord (webhook déjà supprimé dans Discord, réseau…)
+    relocated: bool  # le point d'entrée du coffre était sur ce webhook : recréé sur un autre
+    config_updated: bool  # son URL a été retirée de config.toml
+
+
+CONFIG_WEBHOOKS_KEY = "config_webhooks"  # webhooks de config.toml à la dernière ouverture (identifiants)
+
+ENTRY_HELP = (
+    "Le point d'entrée du coffre (superbloc) est sur ce webhook et d'autres appareils l'utilisent : il sera recréé "
+    "sur un autre webhook, puis chaque autre appareil devra suivre la nouvelle adresse (dscs device invite ici, "
+    "dscs device join là-bas). Relance avec --repair pour le faire."
+)
 
 
 class Vault:
@@ -63,6 +81,7 @@ class Vault:
         self.last_sync: SyncReport | None = None
         # avertissements à montrer (synchronisation, webhook changé de salon…) ; l'interface le branche
         self.notify: Callable[[str], None] | None = None
+        self.notices: list[str] = []  # avertissements de l'ouverture (écarts entre config.toml et le coffre)
 
     # ------------------------------------------------------------------ ouverture / fermeture
 
@@ -79,12 +98,17 @@ class Vault:
         except BaseException:
             lock.release()
             raise
+        notices: list[str] = []
         if keyring is not None:
             index.adopt_unknown_files(keyring.current)
+            notices = _config_notices(settings, keyring, index)
             # webhooks ajoutés à la main dans config.toml : ils rejoignent le coffre (et seront partagés)
             if keyring.add_webhooks([w.url for w in settings.webhooks]):
                 keystore.save(keyring)
-        return cls(paths, settings, index, keyring, lock, keystore)
+        vault = cls(paths, settings, index, keyring, lock, keystore)
+        vault.notices = notices
+        vault._forget_removed_webhooks()
+        return vault
 
     def close(self) -> None:
         self.index.close()
@@ -128,9 +152,10 @@ class Vault:
         return list(self.settings.webhooks)
 
     def _refresh(self) -> None:
-        """Après une synchronisation : nouvelles clés, nouveaux webhooks."""
+        """Après une synchronisation : nouvelles clés, nouveaux webhooks (et webhooks retirés ailleurs)."""
         if self.keyring is not None:
             self._ciphers = self.keyring.ciphers()
+            self._forget_removed_webhooks()
         if self._session is not None:
             self._pool = WebhookPool(self._session, self._webhook_refs())
 
@@ -214,6 +239,64 @@ class Vault:
         return self._pool
 
     # ------------------------------------------------------------------ webhooks
+
+    def _forget_removed_webhooks(self) -> None:
+        """Webhooks retirés du coffre (ici ou sur un autre appareil) : plus rien d'eux dans l'index."""
+        if self.keyring is None:
+            return
+        for wid in self.keyring.removed_webhooks.keys() & self.index.webhook_rows().keys():
+            if self.index.forget_webhook(wid):
+                self._dirty = True  # pierres tombales à publier ; morceaux restants : dscs gc
+
+    def files_on_webhook(self, webhook_id: str) -> list[StoredFile]:
+        """Fichiers qui ont au moins un morceau sur ce webhook (ceux que son retrait supprimerait)."""
+        ids = {fid for fid, hooks in self.index.webhooks_by_file().items() if webhook_id in hooks}
+        return [rec for rec in self.files() if rec.id in ids]
+
+    async def remove_webhook(self, webhook_id: str, repair: bool = False) -> WebhookRemoval:
+        """Retire un webhook du coffre, partout : trousseau (donc chez les autres appareils), cache, config.toml.
+
+        Ses morceaux sont perdus : les fichiers qui en avaient sont supprimés du coffre, avec leurs morceaux
+        restés sur les autres webhooks. Les messages qu'il portait sont supprimés de Discord s'il existe encore.
+        `repair` : s'il porte le point d'entrée du coffre, le recréer ailleurs même si d'autres appareils l'utilisent.
+        """
+        ring = self._require_keyring()
+        engine = self._require_engine()
+        sb = await engine.pull()
+        self._refresh()
+        known = [r.id for r in self._webhook_refs()]
+        if webhook_id not in known:
+            raise ConfigError(f"Webhook inconnu dans le coffre : {webhook_id}.")
+        if len(known) == 1:
+            raise ConfigError("C'est le dernier webhook du coffre : ajoute d'abord un autre webhook dans config.toml.")
+        entry = ring.superblock is not None and ring.superblock["webhook_id"] == webhook_id
+        if entry and not (repair or engine.sole_device()):
+            raise ConfigError(ENTRY_HELP)
+
+        client = self.pool.get(webhook_id)  # gardé : ses messages sont supprimés une fois le coffre à jour
+        doomed = self.index.chunks_on_webhook(webhook_id)
+        if sb is not None and sb.index is not None:
+            doomed += [m for w, m in sb.index.parts if w == webhook_id]
+        if entry:
+            doomed.append(ring.superblock["message_id"])
+        ring.remove_webhook(webhook_id)
+        self.keystore.save(ring)
+        lost = self.index.forget_webhook(webhook_id)
+        self._refresh()
+        if entry:
+            report = SyncReport()
+            await engine.relocate(report)
+            self._record(report)
+        for rec in lost:
+            await transfer.purge_file(rec.id, index=self.index, pool=self.pool)  # échec : repris par dscs gc
+        await engine.push()
+        self._dirty = False
+        self._refresh()
+
+        leftovers = await _delete_messages(client, doomed)
+        config_updated = remove_webhook_from_config(self.paths.config_file, webhook_id)
+        self.settings = replace(self.settings, webhooks=[w for w in self.settings.webhooks if w.id != webhook_id])
+        return WebhookRemoval(files=lost, leftovers=leftovers, relocated=entry, config_updated=config_updated)
 
     def webhook_infos(self) -> list[WebhookInfo]:
         """Webhooks du coffre avec serveur et salon (cache local + noms lisibles de config.toml), sans réseau."""
@@ -416,18 +499,33 @@ class Vault:
     async def upload(
         self, item: UploadItem, on_progress: ProgressCB | None = None, webhooks: list[str] | None = None
     ) -> StoredFile:
-        """Envoie un fichier ; `webhooks` (identifiants) limite les webhooks utilisés, sinon tous."""
+        """Envoie un fichier ; lève son erreur en cas d'échec. Plusieurs fichiers : upload_many (plus rapide)."""
+        [result] = await self.upload_many([item], on_progress=on_progress, webhooks=webhooks)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    async def upload_many(
+        self,
+        items: list[UploadItem],
+        on_progress: ProgressCB | None = None,
+        on_result: ResultCB | None = None,
+        webhooks: list[str] | None = None,
+    ) -> list[UploadResult]:
+        """Envoie des fichiers en un seul flux : chaque webhook choisi (défaut : tous) enchaîne les morceaux de tous
+        les fichiers. Renvoie, dans l'ordre, le fichier stocké ou l'erreur de chacun (voir transfer.upload_files)."""
         ring = self._require_keyring()
         clients = [self.pool.get(w) for w in webhooks] if webhooks else None
         self._dirty = True
-        return await transfer.upload_file(
-            item,
+        return await transfer.upload_files(
+            items,
             index=self.index,
             cipher=self._ciphers[ring.current],
             key_id=ring.current,
             pool=self.pool,
             chunk_size=self.settings.chunk_size,
             on_progress=on_progress,
+            on_result=on_result,
             clients=clients,
         )
 
@@ -474,3 +572,44 @@ class Vault:
         finally:
             if self._lock:
                 self._lock.downgrade_shared()
+
+
+async def _delete_messages(client: WebhookClient, message_ids: list[str]) -> int:
+    """Supprime des messages d'un webhook retiré du coffre ; renvoie le nombre de ceux restés sur Discord."""
+    try:
+        await client.info()
+    except DiscordError as e:
+        if e.status == 404:  # supprimé dans Discord : ses messages restent dans le salon, hors de portée
+            return len(message_ids)
+    leftovers = 0
+    for mid in message_ids:
+        try:
+            await client.delete_message(mid, missing_ok=True)
+        except DSCSError:
+            leftovers += 1
+    return leftovers
+
+
+def _config_notices(settings: Settings, keyring: Keyring, index: Index) -> list[str]:
+    """Écarts entre config.toml et le coffre. Rien n'est supprimé sans confirmation : on indique la commande."""
+    notices = [
+        f"Le webhook {ref.id} de config.toml a été retiré du coffre : il est ignoré, retire-le de config.toml."
+        for ref in settings.webhooks
+        if ref.id in keyring.removed_webhooks
+    ]
+    current = {ref.id for ref in settings.webhooks}
+    previous = set(json.loads(index.get_meta(CONFIG_WEBHOOKS_KEY) or "[]"))
+    in_vault = {WebhookRef.parse(u).id for u in keyring.webhooks}
+    names = index.webhook_rows()
+    gone = sorted((previous - current) & in_vault)  # rappelés à chaque ouverture tant qu'ils sont dans le coffre
+    for wid in gone:
+        name = names.get(wid, (None, None, None))[0]
+        label = f"« {name} » ({wid})" if name else wid
+        notices.append(
+            f"Le webhook {label} n'est plus dans config.toml mais reste dans le coffre (partagé entre appareils). "
+            f"Pour le retirer partout, avec les fichiers qui ont des morceaux dessus : dscs webhooks rm {wid}"
+        )
+    remembered = json.dumps(sorted(current | set(gone)))
+    if index.get_meta(CONFIG_WEBHOOKS_KEY) != remembered:
+        index.set_meta(CONFIG_WEBHOOKS_KEY, remembered)
+    return notices

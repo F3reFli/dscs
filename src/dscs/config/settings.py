@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -77,6 +78,7 @@ def save_settings(path: Path, webhook_urls: list[str]) -> None:
         "# Plusieurs webhooks (un par salon) = envois en parallèle. Ceux du coffre sont aussi gardés avec ses clés :\n"
         "# un appareil qui rejoint le coffre les reçoit sans rien écrire ici.\n"
         "# Ne supprime jamais dans Discord un webhook déjà utilisé : ses morceaux deviendraient inaccessibles.\n"
+        "# Pour en retirer un du coffre (et les fichiers qu'il porte) : dscs webhooks rm <nom ou identifiant>\n"
         f"webhooks = [\n{hooks}]\n\n"
         "# Taille des morceaux. Max 10 Mio sans Nitro (on garde de la marge).\n"
         f"chunk_size_mb = {DEFAULT_CHUNK_MB}\n\n"
@@ -93,3 +95,43 @@ def save_settings(path: Path, webhook_urls: list[str]) -> None:
     with os.fdopen(fd, "w") as f:
         f.write(text)
     os.chmod(path, 0o600)  # si le fichier existait déjà avec d'autres droits
+
+
+def remove_webhook_from_config(path: Path, webhook_id: str) -> bool:
+    """Retire de config.toml les URLs de ce webhook, sans toucher au reste du fichier (commentaires compris).
+
+    Renvoie False si le fichier n'en contient pas, ou s'il est écrit d'une façon qu'on ne sait pas modifier
+    sans risque (il est alors laissé tel quel).
+    """
+    try:
+        text = path.read_text()
+        hooks = tomllib.loads(text).get("webhooks") or []
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
+    if not isinstance(hooks, list):
+        return False
+    urls = [str(u) for u in hooks if _webhook_id(str(u)) == webhook_id]
+    if not urls:
+        return False
+    new = text
+    for url in urls:
+        quoted = "(?:\"" + re.escape(url) + "\"|'" + re.escape(url) + "')"
+        # seul sur sa ligne (forme écrite par dscs init), sinon au milieu d'une liste sur une ligne
+        new, n = re.subn(rf"(?m)^[ \t]*{quoted}[ \t]*,?[ \t]*(?:#[^\n]*)?\n", "", new)
+        if not n:
+            new = re.sub(rf"{quoted}[ \t]*,?[ \t]*", "", new)
+    try:
+        left = tomllib.loads(new).get("webhooks") or []
+    except tomllib.TOMLDecodeError:
+        return False
+    if sorted(map(str, left)) != sorted(str(u) for u in hooks if str(u) not in urls):
+        return False
+    path.write_text(new)  # garde les droits du fichier (600 : il contient les tokens)
+    return True
+
+
+def _webhook_id(url: str) -> str | None:
+    try:
+        return WebhookRef.parse(url).id
+    except ConfigError:
+        return None

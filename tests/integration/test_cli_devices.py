@@ -148,3 +148,30 @@ def test_bench_through_cli(server_urls, tmp_path, on):
     code, out = on("A", "bench", "-s", "5", "-y", "-w", "Stockage 2")
     assert code == 0 and "Stockage 1" not in out.split("Webhook")[1]
     assert ".bin" not in on("A", "ls")[1], "rien n'est entré dans le coffre"
+
+
+def test_webhook_removed_from_config_then_from_vault(cli_discord, tmp_path, on):
+    urls, control = cli_discord
+    home = tmp_path / "A"
+    initialize(Paths(home, home), urls, device_name="pc-fixe")
+    (tmp_path / "a.txt").write_text("gardé")
+    (tmp_path / "b.txt").write_text("sur papa")
+    assert on("A", "put", str(tmp_path / "a.txt"), "-w", "1")[0] == 0
+    assert on("A", "put", str(tmp_path / "b.txt"), "-w", "2")[0] == 0
+    assert on("A", "webhooks")[0] == 0  # noms en cache (« Stockage 2 »)
+
+    config = home / "config.toml"
+    config.write_text("".join(line for line in config.read_text().splitlines(True) if urls[1] not in line))
+    code, out = on("A", "webhooks")
+    assert code == 0 and "Stockage 2" in out, "toujours dans le coffre : rien n'est supprimé sans confirmation"
+    assert "dscs webhooks rm 2" in out
+
+    code, out = on("A", "webhooks", "rm", "stockage 2", "-y")
+    assert code == 0 and "1 fichier(s) supprimé(s)" in out
+    code, out = on("A", "webhooks")
+    assert code == 0 and "Stockage 2" not in out and "webhooks rm" not in out
+    code, out = on("A", "ls")
+    assert "a.txt" in out and "b.txt" not in out
+
+    code, out = on("A", "webhooks", "rm", "1", "-y")
+    assert code == 1 and "dernier webhook" in out

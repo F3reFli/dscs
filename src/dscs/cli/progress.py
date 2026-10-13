@@ -17,14 +17,27 @@ class TextProgress:
         self.stream = stream or sys.stdout
         self.live = self.stream.isatty()
 
+    @property
+    def speed(self) -> float:
+        """Débit moyen depuis le début, en octets par seconde."""
+        return self.done / max(time.monotonic() - self.t0, 1e-6)
+
     def __call__(self, n: int) -> None:
         self.done += n
+        self._draw()
+
+    def _draw(self) -> None:
         if not self.live:
             return
-        pct = self.done / self.total
-        speed = self.done / max(time.monotonic() - self.t0, 1e-6)
+        pct = min(self.done / self.total, 1.0)
         bar = "█" * int(pct * 30) + "░" * (30 - int(pct * 30))
-        print(f"\r  {self.label[:30]:30} {bar} {pct:4.0%}  {human(speed)}/s ", end="", file=self.stream, flush=True)
+        line = f"\r  {self.label[:30]:30} {bar} {pct:4.0%}  {human(self.speed)}/s "
+        print(line, end="", file=self.stream, flush=True)
+
+    def log(self, message: str) -> None:
+        """Une ligne au-dessus de la barre, qui continue en dessous."""
+        self.finish(message)
+        self._draw()
 
     def finish(self, message: str) -> None:
         if self.live:  # efface la barre de progression

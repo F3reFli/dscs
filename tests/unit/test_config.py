@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from dscs.config import Paths, load_settings, save_settings
+from dscs.config import Paths, load_settings, remove_webhook_from_config, save_settings
 from dscs.discord import is_official_url
 from dscs.errors import ConfigError
 from dscs.models import WebhookRef
@@ -47,6 +47,42 @@ def test_duplicate_webhooks_are_merged(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text(f'webhooks = ["{URL}", "{URL}/"]\n')
     assert len(load_settings(f).webhooks) == 1
+
+
+OTHER = "https://discord.com/api/webhooks/999/zzz"
+
+
+def test_remove_webhook_from_generated_config(tmp_path):
+    f = tmp_path / "config.toml"
+    save_settings(f, [URL, OTHER])
+    before = f.read_text()
+    assert remove_webhook_from_config(f, "123456")
+    assert [w.id for w in load_settings(f).webhooks] == ["999"]
+    assert f.read_text() == before.replace(f'  "{URL}",\n', ""), "le reste du fichier (commentaires) est intact"
+    assert oct(f.stat().st_mode)[-3:] == "600"
+    assert not remove_webhook_from_config(f, "123456"), "déjà absent"
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        f'webhooks = ["{URL}/", \'{OTHER}\']  # deux salons\nshow_hidden = true\n',
+        f'webhooks = [\n  "{OTHER}",\n  "{URL}"  # perso\n]\n',
+    ],
+)
+def test_remove_webhook_from_hand_written_config(tmp_path, content):
+    f = tmp_path / "config.toml"
+    f.write_text(content)
+    assert remove_webhook_from_config(f, "123456")
+    s = load_settings(f)
+    assert [w.id for w in s.webhooks] == ["999"]
+
+
+def test_remove_webhook_from_config_gives_up_when_unsure(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text(f'webhooks = "{URL}"\n')
+    assert not remove_webhook_from_config(f, "123456"), "seul webhook, sous forme de chaîne : on ne touche à rien"
+    assert f.read_text() == f'webhooks = "{URL}"\n'
 
 
 @pytest.mark.parametrize(

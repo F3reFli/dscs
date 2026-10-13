@@ -55,6 +55,31 @@ def test_chunk_requires_known_webhook(tmp_path):
     idx.close()
 
 
+def test_forget_webhook(tmp_path):
+    idx = Index.open(tmp_path / "index.db")
+    idx.update_webhook_info("1", "un", "g", "c1")
+    idx.update_webhook_info("2", "deux", "g", "c2")
+    files = {}
+    for uid, hooks in (("a", ["1"]), ("b", ["2"]), ("c", ["1", "2"])):
+        fid = files[uid] = idx.add_file(uid, uid, "", 1, len(hooks), 1, None)
+        for n, w in enumerate(hooks):
+            idx.add_chunk(fid, Chunk(n, w, f"{uid}{n}", 1))
+        idx.mark_complete(fid, "x")
+    pending = idx.add_file("d", "d", "", 1, 1, 1, None)  # envoi interrompu
+    idx.add_chunk(pending, Chunk(0, "2", "d0", 1))
+
+    assert idx.chunks_on_webhook("2") == ["b0", "c1", "d0"]
+    gone = idx.forget_webhook("2")
+    assert [f.uid for f in gone] == ["b", "c"], "fichiers complets touchés"
+    assert [f.uid for f in idx.list_files()] == ["a"]
+    assert {f.uid for f in idx.incomplete_files()} == {"b", "c", "d"}, "à nettoyer (morceaux restés ailleurs)"
+    assert idx.tombstones().keys() == {"b", "c"}, "les autres appareils les oublieront"
+    assert [c.webhook_id for c in idx.chunks(files["c"])] == ["1"]
+    assert idx.chunks_on_webhook("2") == [] and set(idx.webhook_rows()) == {"1"}
+    assert idx.forget_webhook("2") == [], "sans effet la deuxième fois"
+    idx.close()
+
+
 def test_files_per_key_and_adoption(tmp_path):
     idx = Index.open(tmp_path / "index.db")
     for uid, size, key in (("a", 10, "k1"), ("b", 5, "k1"), ("c", 7, "k2"), ("d", 1, None)):

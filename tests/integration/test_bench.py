@@ -18,7 +18,8 @@ async def test_bench_measures_then_deletes_everything(vault, discord):
     seen = []
     report = await bench(vault, 25 * MiB, download=True, on_progress=seen.append)
     assert report.sent == 25 * MiB == sum(seen) == report.received
-    assert {w.info.id: w.chunks for w in report.webhooks} == {"1": 2, "2": 1}, "morceaux répartis entre webhooks"
+    split = {w.info.id: w.chunks for w in report.webhooks}
+    assert sum(split.values()) == 3 and sorted(split.values()) == [1, 2], "morceaux répartis entre webhooks"
     assert all(w.up_rate > 0 and w.channel_id for w in report.webhooks)
     assert report.up_rate > 0 and report.down_rate > 0
     assert report.deleted == 3 and report.leftovers == 0
