@@ -23,13 +23,13 @@ HTML, 'Avant de commencer') ?>
 
 <?= $c->code('bash', <<<'SH'
 dscs ls
-dscs get 12 -o ~/recuperation      # un fichier
+dscs get [id] -o [folder]          # un fichier
 SH) ?>
 
-<p>Pour tout récupérer d'un coup (chaque fichier retrouve son dossier sous <code>~/recuperation</code>) :</p>
+<p>Pour tout récupérer d'un coup (chaque fichier retrouve son dossier sous <code>[folder]</code>) :</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs ls | awk '$4 ~ /^[0-9]+\/[0-9]+\/[0-9]+$/ {print $1}' | xargs -r -n1 dscs get -o ~/recuperation
+dscs ls | awk '$4 ~ /^[0-9]+\/[0-9]+\/[0-9]+$/ {print $1}' | xargs -r -n1 dscs get -o [folder]
 SH) ?>
 
 <p>Le filtre <code>awk</code> ne garde que les lignes de fichiers (celles qui contiennent une date) et en extrait l'ID.</p>

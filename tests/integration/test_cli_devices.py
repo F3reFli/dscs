@@ -175,3 +175,18 @@ def test_webhook_removed_from_config_then_from_vault(cli_discord, tmp_path, on):
 
     code, out = on("A", "webhooks", "rm", "1", "-y")
     assert code == 1 and "dernier webhook" in out
+
+
+def test_verbose_and_log_file_through_cli(server_urls, tmp_path, on):
+    initialize(Paths(tmp_path / "A", tmp_path / "A"), server_urls, device_name="pc-fixe")
+    (tmp_path / "a.txt").write_text("a")
+    code, out = on("A", "-vv", "put", str(tmp_path / "a.txt"))
+    assert code == 0 and "POST " in out and "/webhooks/" in out and "envoi terminé : 1/1" in out
+    assert "tok1" not in out and "tok2" not in out, "tokens masqués"
+    (tmp_path / "b.txt").write_text("b")
+    log = tmp_path / "journal.log"
+    code, out = on("A", "put", str(tmp_path / "b.txt"), "-v", "--log", str(log))
+    assert code == 0 and "envoi terminé" not in out, "avec --log, rien dans le terminal"
+    assert "envoi terminé : 1/1" in log.read_text() and "tok1" not in log.read_text()
+    code, out = on("A", "ls")
+    assert code == 0 and "POST" not in out, "sans -v, plus de journal"

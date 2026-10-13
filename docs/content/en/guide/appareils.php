@@ -42,7 +42,7 @@ SH) ?>
 
 <?= $c->steps([
     '<p><strong>On the new device</strong> (with dscs installed): create its identity.</p>' . $c->code('bash', 'dscs device init') . '<p>It shows its <strong>public key</strong> (<code>dscs-pub-…</code>) and its <strong>code</strong> (20 digits). Send the public key to the member device by any means: it is not secret.</p>',
-    '<p><strong>On a device that is already a member</strong>: add it.</p>' . $c->code('bash', 'dscs device add dscs-pub-… --name laptop') . '<p>dscs shows the code of the received key: <strong>check that it is identical</strong> to the new device\'s before confirming. It then gives an <strong>invitation</strong> (<code>dscs-inv1-…</code>) and its own code.</p>',
+    '<p><strong>On a device that is already a member</strong>: add it.</p>' . $c->code('bash', 'dscs device add dscs-pub-… --name [device-2]') . '<p>dscs shows the code of the received key: <strong>check that it is identical</strong> to the new device\'s before confirming. It then gives an <strong>invitation</strong> (<code>dscs-inv1-…</code>) and its own code.</p>',
     '<p><strong>On the new device</strong>: join the vault with the invitation.</p>' . $c->code('bash', 'dscs device join dscs-inv1-…') . '<p>dscs shows the name and code of the device that added it: <strong>check that it is identical</strong>, then confirm. The keyring, the webhooks and the file list arrive; there is nothing to configure.</p>',
 ]) ?>
 
@@ -61,10 +61,10 @@ blocks the operation.</p>
 $ dscs device list
 Coffre 3209f41d9111ac84 · 2 appareil(s) membre(s)
 
-pc-fixe  (cet appareil)
+[device]  (cet appareil)
   Code   : 3381-7309-6931-3796-0561
   Ajouté : 12/10/2026 13:41
-portable
+[device-2]
   Code   : 5194-9876-1085-3989-0479
   Ajouté : 12/10/2026 13:41
 TXT) ?>
@@ -103,7 +103,7 @@ afterwards: the old one points to the old address.</p>
 <p>Lost or stolen device, or a person who must no longer have access:</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs device revoke laptop          # name, code or ID (see dscs device list)
+dscs device revoke [device-2]      # name, code or ID (see dscs device list)
 SH) ?>
 
 <p>The device is removed from the keyring and the vault moves to a <strong>new key generation</strong> it will never
@@ -129,7 +129,7 @@ SH) ?>
 private key of a “recovery” device, member of the vault, plus the vault's address.</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs key recovery -o dscs-kit.txt     # creates the kit (file readable by you only); without -o it is printed
+dscs key recovery -o [file]           # creates the kit (file readable by you only); without -o it is printed
 SH) ?>
 
 <?= $c->callout('danger', '<p>The kit gives access to the <strong>whole</strong> vault. Print it and keep it in a safe place, or on an encrypted USB stick. Never on Discord, in an email or in a cloud.</p>') ?>

@@ -36,6 +36,33 @@ def test_default_command_is_tui(tmp_path, monkeypatch, argv):
     assert seen == [tmp_path if argv else None]
 
 
+@pytest.mark.parametrize("argv", [["-v"], ["-vv", "DOSSIER"], ["--log", "J", "DOSSIER"], ["-v", "help"]])
+def test_log_options_before_the_command(tmp_path, monkeypatch, capsys, argv):
+    """Les options du journal peuvent précéder le dossier : c'est toujours l'interface qui s'ouvre."""
+    monkeypatch.setenv("DSCS_HOME", str(tmp_path))
+    seen = []
+    monkeypatch.setattr(commands, "cmd_tui", lambda args: seen.append(args) or 0)
+    argv = [str(tmp_path) if a == "DOSSIER" else str(tmp_path / "j.log") if a == "J" else a for a in argv]
+    if argv[-1] == "help":
+        with pytest.raises(SystemExit):
+            main(argv)
+        assert "--verbose" in capsys.readouterr().out
+        return
+    assert main(argv) == 0
+    [args] = seen
+    assert args.folder == (tmp_path if len(argv) > 1 else None)
+    assert args.log is not None, "l'interface occupe le terminal : le journal va dans un fichier"
+    if argv[0] == "-v":
+        assert args.log == tmp_path / "dscs.log"
+
+
+def test_log_options_after_the_command(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("DSCS_HOME", str(tmp_path))
+    args = build_parser().parse_args(["ls", "-vv", "--log", str(tmp_path / "x.log")])
+    assert args.verbose == 2 and args.log == tmp_path / "x.log"
+    assert build_parser().parse_args(["ls"]).verbose == 0
+
+
 def test_missing_config_message(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("DSCS_HOME", str(tmp_path))
     assert main(["ls"]) == 1

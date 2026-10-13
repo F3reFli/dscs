@@ -4,7 +4,8 @@
     python scripts/make_media.py media        # ou : make media
 
 - tui.gif et tui-*.png : l'interface pilotée au clavier (envoi, onglet Distant, téléchargement) ;
-- banner.gif : la bannière animée de `dscs -h`.
+- banner.gif : la bannière animée de `dscs -h` ; cli-help.png : l'aide complète ;
+- docs-*.png : quelques pages de la documentation locale (thème sombre), si PHP et Firefox sont là.
 
 Tout se passe dans un dossier temporaire (dossier personnel factice, coffre neuf) : rien de la machine n'apparaît.
 Les écrans sont rendus par Firefox (sans interface) pour les émojis et symboles ; sans Firefox, par CairoSVG, qui
@@ -20,6 +21,7 @@ import io
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -33,9 +35,11 @@ import cairosvg  # noqa: E402
 from aiohttp import web  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
+from dscs.cli.parser import main_help  # noqa: E402
 from dscs.config import Paths  # noqa: E402
 from dscs.services import Vault, initialize  # noqa: E402
 from dscs.tui import DSCSApp, VimTree  # noqa: E402
+from dscs.tui.widgets import BannerStrip  # noqa: E402
 from dscs.utils import banner  # noqa: E402
 from fakes.fake_discord import make_app  # noqa: E402
 
@@ -93,7 +97,9 @@ def _firefox_shot(firefox: str, work: Path, svgs: list[str], heights: list[int])
     for f in work.glob("*.svg"):
         f.unlink()
     for n, svg in enumerate(svgs):
-        (work / f"{n}.svg").write_text(svg)
+        # police web (Fira Code sur un CDN) : jamais chargée dans une image, et le texte resterait invisible
+        # le temps que Firefox y renonce ; la police monospace locale s'affiche tout de suite
+        (work / f"{n}.svg").write_text(re.sub(r"@font-face\s*\{.*?\}", "", svg, flags=re.S))
     imgs = "".join(
         f'<img src="{n}.svg" style="display:block;width:{WIDTH}px;height:{h}px">' for n, h in enumerate(heights)
     )
@@ -119,6 +125,12 @@ def _firefox_shot(firefox: str, work: Path, svgs: list[str], heights: list[int])
     return out
 
 
+def _firefox_workdir() -> Path:
+    """Dossier temporaire pour le profil et les captures de Firefox (en snap, il ne lit que son propre dossier)."""
+    snap = REAL_HOME / "snap" / "firefox" / "common"
+    return Path(tempfile.mkdtemp(prefix="dscs-media-", dir=snap if snap.is_dir() else None))
+
+
 def render_svgs(svgs: list[str]) -> list[Image.Image]:
     """SVG de Textual -> images, rendus par Firefox sans interface (repli des polices pour émojis et symboles)."""
     firefox = shutil.which("firefox")
@@ -128,9 +140,7 @@ def render_svgs(svgs: list[str]) -> list[Image.Image]:
             Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg.encode(), output_width=WIDTH))).convert("RGB")
             for svg in svgs
         ]
-    # Firefox en snap ne lit que son propre dossier : profil, page et capture y vont
-    snap = REAL_HOME / "snap" / "firefox" / "common"
-    work = Path(tempfile.mkdtemp(prefix="dscs-media-", dir=snap if snap.is_dir() else None))
+    work = _firefox_workdir()
     try:
         (work / "profile").mkdir()
         images: list[Image.Image] = []
@@ -210,7 +220,14 @@ async def capture_tui(work: Path, out: Path) -> None:
                 await settle()
                 shot(duration, still)
 
-            await settle(0.5)
+            strip = tui.query_one(BannerStrip)
+            while strip.playing:  # ouverture : l'animation du bandeau d'accueil
+                shot(0.09)
+                await pilot.pause(0.06)
+            shot(1.4)  # la bannière au repos, avant de se replier
+            while strip.display:
+                await pilot.pause(0.05)
+            await settle(0.3)
             tui.clear_notifications()
             tree = tui.query_one(VimTree)
             shot(1.6)
@@ -308,7 +325,8 @@ def capture_banner(out: Path) -> None:
     columns = 80
     steps = banner.animation(columns)
     prompt = "\x1b[38;2;120;120;130m$\x1b[0m dscs -h"
-    help_lines = ["", "usage: dscs [-h] [-V] COMMANDE ...", "", "Stockage chiffré sur un serveur Discord."]
+    help_all = [""] + main_help().splitlines()
+    help_lines = help_all[:4]  # usage et description : la bannière reste compacte en tête du README
     rows = 1 + len(steps[0][0]) + len(help_lines)
     frames = [(render_terminal([prompt], columns, rows), 0.6)]
     for n, (lines, delay) in enumerate(steps):
@@ -317,12 +335,61 @@ def capture_banner(out: Path) -> None:
         frames.append((render_terminal(shown, columns, rows), 3.5 if last else max(delay, 0.03)))
     frames[-1][0].save(out / "banner.png", optimize=True)
     save_gif(frames, out / "banner.gif")
+    full = [prompt] + steps[-1][0] + help_all
+    render_terminal(full, columns, len(full)).save(out / "cli-help.png", optimize=True)
+
+
+# ---------------------------------------------------------------- documentation
+
+DOCS_PAGES = {  # capture -> page de la doc locale
+    "docs-accueil": "/fr/",
+    "docs-architecture": "/fr/concepts/architecture",
+    "docs-chiffrement": "/fr/concepts/chiffrement",
+    "docs-appareils": "/fr/guide/appareils",
+}
+
+
+def capture_docs(out: Path) -> None:
+    """Pages de la doc locale, thème sombre par défaut : php -S puis Firefox sans interface."""
+    php, firefox = shutil.which("php"), shutil.which("firefox")
+    if not (php and firefox):
+        print("PHP ou Firefox introuvable : captures de la doc ignorées.", file=sys.stderr)
+        return
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    docs = ROOT / "docs" / "public"
+    server = subprocess.Popen(
+        [php, "-S", f"127.0.0.1:{port}", "-t", str(docs), str(docs / "router.php")],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    work = _firefox_workdir()
+    try:
+        for _ in range(50):  # attend que le serveur réponde
+            try:
+                socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+                break
+            except OSError:
+                threading.Event().wait(0.1)
+        (work / "profile").mkdir()
+        for name, page in DOCS_PAGES.items():
+            subprocess.run(
+                [firefox, "--headless", "--no-remote", "--profile", str(work / "profile"), "--window-size=1280,800",
+                 "--screenshot", str(work / "shot.png"), f"http://127.0.0.1:{port}{page}"],
+                check=True, capture_output=True, timeout=120,
+            )
+            Image.open(work / "shot.png").convert("RGB").save(out / f"{name}.png", optimize=True)
+    finally:
+        server.terminate()
+        server.wait(5)
+        shutil.rmtree(work, ignore_errors=True)
 
 
 def main() -> None:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "media").resolve()
     out.mkdir(parents=True, exist_ok=True)
     capture_banner(out)
+    capture_docs(out)  # avant l'interface, qui remplace HOME par un dossier personnel factice
     with tempfile.TemporaryDirectory(prefix="dscs-media-") as work:
         asyncio.run(capture_tui(Path(work), out))
     for f in sorted(out.iterdir()):

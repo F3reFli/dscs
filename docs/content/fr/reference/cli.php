@@ -13,7 +13,7 @@ sont en français.</p>
 <h2>Synopsis</h2>
 
 <?= $c->code('text', <<<'TXT'
-dscs [-h] [-V] <command> [<args>]
+dscs [-h] [-V] [-v] [--log <file>] <command> [<args>]
 
 dscs [DOSSIER]               interface (raccourci de « dscs tui »)
 dscs tui [DOSSIER]
@@ -37,7 +37,13 @@ TXT) ?>
 <?= $c->table(['Option', 'Effet'], [
     ['<code>-h</code>, <code>--help</code>', 'Aide générale, ou d\'une commande (<code>dscs get --help</code>)'],
     ['<code>-V</code>, <code>--version</code>', 'Affiche <code>dscs &lt;version&gt;</code>'],
+    ['<code>-v</code>, <code>--verbose</code>', 'Journal sur la sortie d\'erreur : les étapes (synchronisation, début et fin de chaque fichier, freinages de Discord, nouvelles tentatives). <code>-vv</code> : en plus chaque requête HTTP (méthode, route, code, durée) et chaque morceau (webhook, taille, temps)'],
+    ['<code>--log FICHIER</code>', 'Écrit ce journal dans <code>FICHIER</code> (créé en <code>600</code>) au lieu du terminal ; seul, équivaut à <code>-v</code>. Avec l\'interface, le journal va toujours dans un fichier : <code>~/.local/share/dscs/dscs.log</code> par défaut'],
 ]) ?>
+
+<p>Ces options se placent avant ou après la commande (<code>dscs -v put …</code> ou <code>dscs put … -v</code>). Le journal ne
+contient <strong>jamais de secret</strong> : les URLs de webhook y apparaissent avec <code>***</code> à la place du token, les
+liens du CDN sans leur signature, et aucune clé n'y est écrite. Il contient en revanche les noms de tes fichiers.</p>
 
 <h2><code>tui</code></h2>
 <?= $c->code('text', 'dscs tui [DOSSIER]') ?>
@@ -176,4 +182,6 @@ pas de clé de coffre.</p>
     ['<code>XDG_CONFIG_HOME</code>', 'Base de <code>dscs/config.toml</code>, <code>dscs/device.json</code>, <code>dscs/keyring.sealed</code> (défaut <code>~/.config</code>)'],
     ['<code>XDG_DATA_HOME</code>', 'Base de <code>dscs/index.db</code> (défaut <code>~/.local/share</code>)'],
     ['<code>HTTPS_PROXY</code>, <code>HTTP_PROXY</code>, <code>NO_PROXY</code>', 'Proxy réseau'],
+    ['<code>DSCS_NO_ANIMATION</code>', 'Pas d\'animation : bannière fixe pour <code>dscs -h</code>, pas de bandeau au lancement de l\'interface'],
+    ['<code>NO_COLOR</code>', 'Bannière de <code>dscs -h</code> sans couleur ni animation'],
 ]) ?>

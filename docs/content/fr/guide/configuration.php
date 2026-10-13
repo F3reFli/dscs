@@ -19,8 +19,8 @@ lancement.</p>
 # Ne supprime jamais dans Discord un webhook déjà utilisé : ses morceaux deviendraient inaccessibles.
 # Pour en retirer un du coffre (et les fichiers qu'il porte) : dscs webhooks rm <nom ou identifiant>
 webhooks = [
-  "https://discord.com/api/webhooks/111111111111111111/AbCd...",
-  "https://discord.com/api/webhooks/222222222222222222/EfGh...",
+  "[webhooks-link]",
+  "[webhooks-link]",
 ]
 
 # Taille des morceaux. Max 10 Mio sans Nitro (on garde de la marge).
@@ -32,7 +32,7 @@ show_hidden = false
 # Discord ne donne pas aux webhooks le nom de leur serveur ni de leur salon.
 # Donne-leur un nom lisible ici (identifiants affichés par « dscs webhooks ») :
 [servers]
-# "118000000000000000" = "Perso"
+# "[server-id]" = "[server-name]"
 
 [channels]
 # "119000000000000000" = "stockage-1"
@@ -89,11 +89,11 @@ identifiants, et le nom du webhook lui-même. Pour afficher des noms lisibles da
 
 <?= $c->code('toml', <<<'TOML'
 [servers]
-"118000000000000000" = "Perso"
+"[server-id]" = "[server-name]"
 
 [channels]
-"119000000000000000" = "stockage-1"
-"119000000000000001" = "photos"
+"[channel-id]" = "[channel-name]"
+"[channel-id]" = "[channel-name]"
 TOML, 'config.toml') ?>
 
 <p>Ces noms ne servent qu'à l'affichage, sur cet appareil. Un salon s'affiche avec un <code>#</code> devant son nom.
@@ -137,8 +137,8 @@ restent téléchargeables. Valeurs acceptées : de 0 (exclu) à 499.</p>
 trousseau et son index), ou pour tester sans toucher à ta configuration :</p>
 
 <?= $c->code('bash', <<<'SH'
-DSCS_HOME=~/coffre-perso dscs init
-DSCS_HOME=~/coffre-perso dscs ~/Documents
+DSCS_HOME=[folder] dscs init
+DSCS_HOME=[folder] dscs [folder]
 SH) ?>
 
 <h2>Phrase de passe dans les scripts</h2>

@@ -1,5 +1,7 @@
 # Architecture de DSCS
 
+Schémas fonctionnels (Mermaid) de toute la pipeline, du disque à Discord et retour : [architecture/](architecture/README.md).
+
 DSCS (**D**iscord **S**erver **C**loud **S**torage) découpe des fichiers en morceaux chiffrés et les
 stocke comme pièces jointes de messages postés par des webhooks Discord. Un coffre peut être partagé entre
 plusieurs appareils (les siens, ou ceux de personnes de confiance) : chacun a sa propre clé, la clé du coffre lui
@@ -79,7 +81,7 @@ Règles de dépendance :
 | `services/devices.py` | `join_vault` (invitation) et `recover_vault` (kit de secours) pour un appareil sans trousseau. |
 | `services/setup.py` | `initialize()` et `probe_webhook()` pour `dscs init`. |
 | `cli/` | `parser.py`, `commands.py` (une `cmd_*` par commande), `prompts.py` (saisies), `progress.py`. |
-| `tui/` | `app.py`, `app.tcss`, `widgets/` (arbre local, table distante, panneau des webhooks), `screens/` (envoi, téléchargement, confirmation, transfert). |
+| `tui/` | `app.py`, `app.tcss`, `widgets/` (arbre local, table distante, panneau des webhooks, bandeau d'accueil `BannerStrip` : animation de `dscs -h` dans l'écran principal, sans focus ni attente — jamais un écran qui bloque), `screens/` (envoi, téléchargement, confirmation, transfert). |
 
 ## Le Vault, point d'entrée unique
 
@@ -150,6 +152,15 @@ l'expéditeur et sait que seul son détenteur a pu sceller : la confiance se dé
 
 Le nombre, la taille et la date des messages ; les identifiants des webhooks et des appareils (empreintes de clés
 publiques). Ni contenu, ni nom de fichier, ni arborescence, ni clé : l'index et le trousseau n'y sont que chiffrés.
+
+## Journal
+
+Chaque module écrit dans son journal (`logging.getLogger(__name__)`) ; le logger `dscs` porte un `NullHandler` :
+rien ne sort tant que la CLI ne l'active pas (`cli/logs.py` : `-v` INFO, `-vv` DEBUG, `--log` fichier en `600` ;
+l'interface écrit toujours dans un fichier). Règle : **aucun secret dans un message** — URLs passées par
+`utils.redact_secrets` (token de webhook et signature `hm` masqués), jamais de clé ; un filtre du handler applique
+le même masquage en dernier recours. Un test d'intégration parcourt envoi, téléchargement, synchro à deux appareils
+et suppression en `-vv` et vérifie qu'aucun token ni aucune clé n'apparaît.
 
 ## Synchronisation entre appareils
 
@@ -298,7 +309,7 @@ DSCSError
 |---|---|
 | `tests/unit/` | utilitaires, crypto, scellement, identité, trousseau, KeyStore, config, index et migrations, verrou, CLI hors ligne |
 | `tests/integration/` | transferts, rotation, clés absentes, webhooks choisis, destinations ; appareils (appairage, partage, révocation, concurrence, trousseau forgé, retour en arrière, secours) ; appairage complet en CLI |
-| `tests/tui/` | scénario clavier complet (envoi avec choix des webhooks, sélection multiple, destination) |
+| `tests/tui/` | scénario clavier complet (envoi avec choix des webhooks, sélection multiple, destination), touches h j k l dans les fenêtres, bandeau d'accueil non bloquant |
 | `tests/fakes/fake_discord.py` | faux serveur : 429, limite 10 Mio, liens expirés, PATCH, suppressions refusables |
 
 ## Feuille de route

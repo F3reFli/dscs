@@ -15,7 +15,7 @@ from ..models import StoredFile, UploadPlan
 from ..services import Vault
 from ..utils import human
 from .screens import ConfirmScreen, DownloadChoice, DownloadScreen, TransferScreen, UploadScreen
-from .widgets import RemoteTable, VimTree, WebhookPanel
+from .widgets import BannerStrip, RemoteTable, VimTree, WebhookPanel
 
 
 class DSCSApp(App):
@@ -39,6 +39,7 @@ class DSCSApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
+        yield BannerStrip()  # animation d'accueil, sans rien bloquer, puis repliée
         with TabbedContent(initial="local"):
             with TabPane("Local", id="local"):
                 yield VimTree(self.start, show_hidden=self.vault.settings.show_hidden)

@@ -8,7 +8,9 @@ $page->description = 'Comment le code de dscs est découpé en couches, et les r
 ?>
 <p>Le package <code>src/dscs/</code> est organisé en couches : chaque couche ne dépend que de celles en dessous.
 L'interface (texte ou ligne de commande) ne fait qu'afficher et saisir ; toute la logique passe par la couche
-<code>services</code>, et d'abord par un objet unique, le <strong>Vault</strong>. Le document de référence est <code>ARCHITECTURE.md</code> à la racine du dépôt.</p>
+<code>services</code>, et d'abord par un objet unique, le <strong>Vault</strong>. Le document de référence est <code>ARCHITECTURE.md</code> à la racine du dépôt ; le dossier <code>architecture/</code>
+du dépôt contient les schémas fonctionnels de toute la pipeline (clés, envoi, téléchargement, synchronisation, appareils,
+sécurité), affichés directement par GitHub.</p>
 
 <h2>Les couches</h2>
 
@@ -139,7 +141,7 @@ interface (une GUI, un service web local…) n'aurait qu'à parler au Vault.</p>
     ['<code>cli/progress.py</code>', 'Barre de progression texte (désactivée hors terminal).'],
     ['<code>cli/prompts.py</code>', 'Saisies : confirmations, phrases de passe, textes secrets (saisie masquée).'],
     ['<code>tui/app.py</code>, <code>app.tcss</code>', 'Application Textual et ses styles.'],
-    ['<code>tui/widgets/</code>', '<code>VimTree</code> (onglet Local), <code>RemoteTable</code> (onglet Distant, sélection multiple), <code>WebhookPanel</code> (serveur et salon).'],
+    ['<code>tui/widgets/</code>', '<code>VimTree</code> (onglet Local), <code>RemoteTable</code> (onglet Distant, sélection multiple), <code>WebhookPanel</code> (serveur et salon), <code>BannerStrip</code> (animation d\'accueil, non bloquante), navigation vim partagée (<code>vim.py</code>).'],
     ['<code>tui/screens/</code>', '<code>UploadScreen</code> (choix des webhooks), <code>DownloadScreen</code> (destination), <code>ConfirmScreen</code>, <code>TransferScreen</code>.'],
 ]) ?>
 

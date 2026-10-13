@@ -169,6 +169,21 @@ list; <code>dscs gc</code> will remove the rest as soon as Discord answers.</p>
 <p><em>Path refused (leaves the destination folder).</em> The remote folder stored in the index would write outside the
 download folder. This cannot happen with an index produced by dscs: it has probably been tampered with.</p>
 
+<h2>Understanding what happens: the log</h2>
+
+<p>Add <code>-v</code> to any command to see the steps, or <code>-vv</code> for every request to Discord and every
+chunk:</p>
+
+<?= $c->code('bash', <<<'SH'
+dscs -v put [folder]            # steps: synchronisation, files, Discord throttling
+dscs -vv get 12                 # also: every HTTP request and every chunk
+dscs -vv --log dscs.log sync    # to a file, to keep it or attach it to a report
+dscs -v                         # the interface: log in ~/.local/share/dscs/dscs.log
+SH) ?>
+
+<p>The log contains no secret (tokens masked as <code>***</code>, no key) but does contain your file names: read it before
+sharing it.</p>
+
 <h2>Other situations</h2>
 
 <h3>Uploads are slow</h3>

@@ -157,6 +157,21 @@ le reste dès que Discord répondra.</p>
 <p>Le dossier distant enregistré dans l'index tenterait d'écrire hors du dossier de téléchargement. Ça ne peut pas arriver avec
 un index produit par dscs : celui-ci a probablement été modifié.</p>
 
+<h2>Comprendre ce qui se passe : le journal</h2>
+
+<p>Ajoute <code>-v</code> à n'importe quelle commande pour voir les étapes, ou <code>-vv</code> pour chaque requête vers
+Discord et chaque morceau :</p>
+
+<?= $c->code('bash', <<<'SH'
+dscs -v put [folder]            # étapes : synchronisation, fichiers, freinages de Discord
+dscs -vv get 12                 # en plus : chaque requête HTTP et chaque morceau
+dscs -vv --log dscs.log sync    # dans un fichier, pour le garder ou le joindre à un rapport
+dscs -v                         # l'interface : journal dans ~/.local/share/dscs/dscs.log
+SH) ?>
+
+<p>Le journal ne contient aucun secret (tokens masqués par <code>***</code>, aucune clé) mais contient les noms de tes
+fichiers : relis-le avant de le partager.</p>
+
 <h2>Autres situations</h2>
 
 <h3>Les envois sont lents</h3>

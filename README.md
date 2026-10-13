@@ -9,6 +9,7 @@ façon vim, confirmation, puis envoi par webhooks. Un même coffre peut être pa
 jamais transmettre de clé en clair.
 
 - Documentation complète (locale) : `make docs` puis <http://localhost:8080>
+- Schémas fonctionnels de toute la pipeline : [architecture/](architecture/README.md)
 - Architecture technique : [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## Aperçu
@@ -24,19 +25,49 @@ jamais transmettre de clé en clair.
 | <img src="media/tui-remote.png" alt="Onglet Distant"> | <img src="media/tui-download.png" alt="Choix de la destination"> |
 | **Onglet Distant** — fichiers stockés, serveur et salon de chaque webhook | **Téléchargement** — destination écrite ou choisie dans l'arbre avec `h j k l` |
 
-<p align="center">
-  <img src="media/docs.png" alt="Documentation locale, thème noir et rouge" width="800"><br>
-  <sub>La documentation locale (PHP + SCSS, français / anglais), thème noir et rouge.</sub>
-</p>
+### La ligne de commande
+
+<details>
+<summary><code>dscs -h</code> : toutes les commandes, par catégorie</summary>
+<p align="center"><img src="media/cli-help.png" alt="Aide complète de dscs -h" width="640"></p>
+</details>
+
+### La documentation locale
+
+Site PHP + SCSS, français / anglais, thème noir et rouge : `make docs` puis <http://localhost:8080>.
+
+| | |
+|---|---|
+| <img src="media/docs-accueil.png" alt="Documentation : accueil"> | <img src="media/docs-architecture.png" alt="Documentation : architecture en couches"> |
+| **Accueil** — ce que fait DSCS, en trois commandes | **Architecture** — les couches du code et leurs règles |
+| <img src="media/docs-chiffrement.png" alt="Documentation : chiffrement"> | <img src="media/docs-appareils.png" alt="Documentation : appareils et partage"> |
+| **Chiffrement** — morceaux, clés, ce que Discord voit | **Appareils** — partager le coffre sans transmettre de clé |
 
 <sub>Captures générées par `make media` contre le faux serveur Discord des tests : aucune donnée réelle.</sub>
+
+## Comment ça marche
+
+Chaque fichier est découpé, chiffré morceau par morceau sur ton PC, puis envoyé comme pièce jointe au nom aléatoire ;
+rien ne sort en clair. Les schémas complets, du disque jusqu'à Discord et retour (clés, envoi, téléchargement,
+synchronisation, appareils, sécurité) sont dans **[architecture/](architecture/README.md)**.
+
+```mermaid
+flowchart LR
+    A["📂 Fichier"] --> B["Morceaux de 9 Mio<br/>+ SHA-256"]
+    B --> C["AES-256-GCM<br/>AAD = uid:idx"]
+    C --> D["Webhooks en parallèle<br/>un par salon"]
+    D --> E["☁️ Discord"]
+    E --> F["Téléchargement :<br/>déchiffrement + vérification"]
+    F --> G["📂 Fichier identique<br/>(SHA-256 vérifié)"]
+    C -.-> H["Index local chiffré<br/>synchronisé entre appareils"]
+```
 
 ## Installation
 
 ```bash
 pipx install .        # ou : pip install --user .
 dscs init             # colle l'URL du webhook (un ou plusieurs)
-dscs ~/Documents      # lance l'interface sur ce dossier
+dscs [folder]         # lance l'interface sur ce dossier
 ```
 
 Pour créer le webhook : paramètres du salon → **Intégrations** → **Webhooks** → **Nouveau webhook** →
@@ -65,14 +96,15 @@ sont alors supprimés de Discord.
 ## Sans interface
 
 ```bash
-dscs put fichier.iso dossier/   # envoyer (-w NOM : seulement sur ce webhook, répétable)
+dscs put [file] [folder]        # envoyer (-w [webhook] : seulement sur ce webhook, répétable)
 dscs ls                         # lister (avec les ID)
-dscs get 12 -o ~/Bureau         # récupérer (--flat : sans recréer le dossier distant)
-dscs rm 12                      # supprimer de Discord (-y : sans confirmation)
+dscs get [id] -o [folder]       # récupérer (--flat : sans recréer le dossier distant)
+dscs rm [id]                    # supprimer de Discord (-y : sans confirmation)
 dscs gc                         # nettoyer les envois interrompus
 dscs webhooks                   # webhooks du coffre : serveur, salon, lien
-dscs webhooks rm papa           # retirer un webhook du coffre, partout (et les fichiers qui en dépendent)
+dscs webhooks rm [webhook]      # retirer un webhook du coffre, partout (et les fichiers qui en dépendent)
 dscs bench                      # mesurer le débit d'envoi (données de test, supprimées ensuite)
+dscs -v put …                   # voir ce qui se passe (-vv : chaque requête ; --log [file])
 ```
 
 Pour envoyer plus vite, ajoute des webhooks **dans d'autres salons** (un par salon) dans `config.toml` : les morceaux
@@ -131,7 +163,7 @@ Dans cet ordre (la clé et l'index servent à retrouver ce qu'il faut supprimer)
 
 ```bash
 # 1. récupérer ce que tu veux garder
-dscs ls | awk '$4 ~ /^[0-9]+\/[0-9]+\/[0-9]+$/ {print $1}' | xargs -r -n1 dscs get -o ~/recuperation
+dscs ls | awk '$4 ~ /^[0-9]+\/[0-9]+\/[0-9]+$/ {print $1}' | xargs -r -n1 dscs get -o [folder]
 # 2. effacer tes données de Discord (ou supprimer les salons de stockage dans Discord)
 dscs ls | awk '$4 ~ /^[0-9]+\/[0-9]+\/[0-9]+$/ {print $1}' | xargs -r -n1 dscs rm -y
 dscs gc

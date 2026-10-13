@@ -664,4 +664,6 @@ def cmd_tui(args: argparse.Namespace) -> int:
 
     with open_vault() as vault:
         DSCSApp(start.resolve(), vault).run()
+    if getattr(args, "log", None):
+        print(f"Journal : {args.log}")
     return 0

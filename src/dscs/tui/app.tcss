@@ -34,3 +34,7 @@ WebhookPanel { height: auto; max-height: 8; padding: 0 1 1 1; border-bottom: sol
 #keep { margin-top: 0; }
 #preview { margin-top: 0; }
 
+/* bandeau d'accueil (animation de dscs -h), replié après l'animation */
+BannerStrip { height: auto; padding: 1 0; }
+TabbedContent { height: 1fr; }  /* l'espace restant : l'écran ne défile pas pendant le bandeau */
+#banner-art { width: auto; height: auto; }

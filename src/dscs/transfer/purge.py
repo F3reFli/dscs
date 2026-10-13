@@ -1,10 +1,14 @@
 """Suppression des morceaux sur Discord, tolérante aux échecs (reprise par `dscs gc`)."""
 from __future__ import annotations
 
+import logging
+
 from ..discord import WebhookPool
 from ..errors import DSCSError
 from ..index import Index
 from ..models import StoredFile
+
+log = logging.getLogger(__name__)
 
 
 async def purge_file(file_id: int, *, index: Index, pool: WebhookPool) -> bool:
@@ -15,10 +19,13 @@ async def purge_file(file_id: int, *, index: Index, pool: WebhookPool) -> bool:
     rien n'est oublié, `dscs gc` réessaiera.
     """
     ok = True
-    for c in index.chunks(file_id):
+    chunks = index.chunks(file_id)
+    log.debug("suppression de %d morceau(x) du fichier %d", len(chunks), file_id)
+    for c in chunks:
         try:
             await pool.get(c.webhook_id).delete_message(c.message_id, missing_ok=True)
-        except DSCSError:
+        except DSCSError as e:
+            log.warning("morceau %d du fichier %d non supprimé (webhook %s) : %s", c.idx, file_id, c.webhook_id, e)
             ok = False
             continue
         index.delete_chunk(file_id, c.idx)

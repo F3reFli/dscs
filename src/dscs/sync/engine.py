@@ -10,6 +10,7 @@ un membre connu, de proche en proche). Un appareil révoqué ne peut donc ni se 
 """
 from __future__ import annotations
 
+import logging
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -23,8 +24,11 @@ from ..discord import WebhookPool
 from ..errors import ConfigError, CryptoError, DiscordError, DSCSError
 from ..index import Index
 from ..models import WebhookRef
+from ..utils import human
 from .snapshot import open_state, seal_state, state_digest
 from .superblock import IndexPointer, Superblock, random_filename
+
+log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 4
 SEQ_KEY = "sync_seq"
@@ -121,6 +125,8 @@ class SyncEngine:
         sb = Superblock.from_bytes(data)
         if sb.vault_id != self.ring.vault_id:
             raise CryptoError("Le superbloc appartient à un autre coffre.")
+        log.debug("superbloc lu : %d destinataire(s) de trousseau, instantané seq %s",
+                  len(sb.keyrings), sb.index.seq if sb.index else "aucun")
         return sb
 
     async def _write(self, sb: Superblock) -> None:
@@ -187,7 +193,8 @@ class SyncEngine:
         Les autres appareils ne la connaissent pas : ils doivent la recevoir par une invitation
         (« dscs device join »). Les kits de secours existants pointent vers l'ancienne adresse.
         """
-        await self._create_superblock(moved=True)
+        webhook_id = await self._create_superblock(moved=True)
+        log.warning("superbloc introuvable : recréé avec le webhook %s", webhook_id)
         report.relocated = True
         report.warnings.append(
             "Point d'entrée du coffre introuvable sur Discord (webhook déplacé vers un autre salon, ou message "
@@ -234,13 +241,17 @@ class SyncEngine:
                 continue
             opened[sender_id] = remote
         changed, ignored = merge_trusted(ring, opened, identity.id)
+        log.debug("trousseaux pour cet appareil : %d ouvert(s), %d ignoré(s)", len(opened), len(ignored))
         for sender_id in ignored:
+            log.warning("trousseau scellé par un appareil inconnu ignoré (%s)", sender_id)
             report.warnings.append(f"trousseau scellé par un appareil inconnu ignoré ({sender_id})")
         if identity.id in ring.revoked or identity.id not in ring.members:
             raise RevokedError("Cet appareil a été retiré de ce coffre depuis un autre appareil.")
         if changed:
             self.store.save(ring)
             report.keyring_updated = True
+            log.info("trousseau mis à jour : %d génération(s) de clé, %d membre(s), %d webhook(s)",
+                     len(ring.keys), len(ring.members), len(ring.webhooks))
 
     async def pull(self, report: SyncReport | None = None) -> Superblock | None:
         report = report or SyncReport()
@@ -250,6 +261,8 @@ class SyncEngine:
         self._merge_keyrings(sb, report)
         for _ in range(2):
             if sb.index is None or sb.index.seq <= self._seq():
+                log.info("coffre à jour : séquence distante %s, locale %d",
+                         sb.index.seq if sb.index else "aucune", self._seq())
                 return sb
             key = self.ring.keys.get(sb.index.key_id)
             if key is None:
@@ -263,7 +276,10 @@ class SyncEngine:
                 sb = await self.read()  # un autre appareil vient de publier : on relit
                 continue
             state = open_state(blob, Cipher(key.key), self.ring.vault_id, sb.index.seq)
-            report.files_added += self.index.import_state(state)
+            added = self.index.import_state(state)
+            report.files_added += added
+            log.info("index reçu : séquence %d (locale %d), %s chiffrés, %d fichier(s) ajouté(s)",
+                     sb.index.seq, self._seq(), human(len(blob)), added)
             self.index.set_meta(SEQ_KEY, str(sb.index.seq))
             return sb
         raise DSCSError("Index du coffre momentanément illisible (publication en cours ailleurs) : réessaie.")
@@ -290,7 +306,7 @@ class SyncEngine:
         report = report or SyncReport()
         await self.publish(report)
         identity = self.store.identity()
-        for _ in range(MAX_ATTEMPTS):
+        for attempt in range(1, MAX_ATTEMPTS + 1):
             sb = await self.pull(report)
             ring = self.ring
             state = self.index.export_state()
@@ -304,20 +320,27 @@ class SyncEngine:
             )
             keyrings_ok = self._keyrings_up_to_date(sb, ring, identity.id)
             if index_ok and keyrings_ok:
+                log.info("rien à publier : index et trousseaux déjà à jour sur Discord")
                 return report
             new = Superblock(sb.vault_id, dict(sb.keyrings), sb.index, dict(sb.extra))
             uploaded: list[tuple[str, str]] = []
             if not index_ok:
                 seq = max(self._seq(), sb.index.seq if sb.index else 0) + 1
-                uploaded = await self._upload_parts(seal_state(state, Cipher(key.key), ring.vault_id, seq))
+                blob = seal_state(state, Cipher(key.key), ring.vault_id, seq)
+                uploaded = await self._upload_parts(blob)
                 new.index = IndexPointer(seq, key.id, digest, uploaded)
+                log.info("instantané de l'index publié : séquence %d, %d fichier(s), %s chiffrés en %d morceau(x)",
+                         seq, len(state["files"]), human(len(blob)), len(uploaded))
             if not keyrings_ok:
                 new.keyrings = self._reseal(sb, ring, identity)
+                log.info("trousseau re-scellé pour %d membre(s)", len(ring.members))
             current = await self.read()
             if current is None or current.to_bytes() != sb.to_bytes():
+                log.info("un autre appareil a publié entre-temps : nouvel essai (%d/%d)", attempt, MAX_ATTEMPTS)
                 await self._delete_parts(uploaded)  # un autre appareil a publié entre-temps : on recommence
                 continue
             await self._write(new)
+            log.debug("superbloc remplacé (PATCH)")
             if not index_ok:
                 self.index.set_meta(SEQ_KEY, str(new.index.seq))
                 if sb.index:

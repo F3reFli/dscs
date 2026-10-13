@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dscs"
-version = "0.4.1"
+version = "0.4.2"
 description = "DSCS (Discord Server Cloud Storage) — stockage chiffré sur un serveur Discord via webhooks, avec une TUI façon arbre vim"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,6 +29,8 @@ pythonpath = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = ["tui: scénario complet de l'interface Textual (plus lent)"]
+# les tests écrivent des fichiers de 25 Mo : on ne garde que les dossiers des tests en échec (/tmp est petit)
+tmp_path_retention_policy = "failed"
 
 [tool.ruff]
 line-length = 120

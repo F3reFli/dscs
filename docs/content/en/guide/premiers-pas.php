@@ -24,7 +24,7 @@ SH) ?>
 <?= $c->code('bash', 'dscs ~/dscs-test') ?>
 
 <p>The <strong>Local</strong> tab shows the tree of <code>~/dscs-test</code>. The subtitle at the top shows the name of
-your webhooks once Discord has answered (<code>→ Storage</code>).</p>
+your webhooks once Discord has answered (<code>→ [webhook]</code>).</p>
 
 <h3>2. Mark and upload</h3>
 
@@ -81,7 +81,7 @@ TXT) ?>
 
 <?= $c->code('bash', <<<'SH'
 dscs ls                       # list with IDs
-dscs get 1 -o ~/Desktop       # -> ~/Desktop/photos/big.bin
+dscs get 1 -o [folder]        # -> [folder]/photos/big.bin
 dscs rm 1                     # asks for confirmation (-y to skip it)
 SH) ?>
 

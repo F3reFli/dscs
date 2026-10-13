@@ -12,6 +12,7 @@ envoyer et télécharger demandent une clé.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager
@@ -47,6 +48,8 @@ class WebhookRemoval:
     relocated: bool  # le point d'entrée du coffre était sur ce webhook : recréé sur un autre
     config_updated: bool  # son URL a été retirée de config.toml
 
+
+log = logging.getLogger(__name__)
 
 CONFIG_WEBHOOKS_KEY = "config_webhooks"  # webhooks de config.toml à la dernière ouverture (identifiants)
 
@@ -107,6 +110,11 @@ class Vault:
                 keystore.save(keyring)
         vault = cls(paths, settings, index, keyring, lock, keystore)
         vault.notices = notices
+        log.debug(
+            "coffre ouvert : %s, %s génération(s) de clé, %d webhook(s), %d fichier(s) dans l'index",
+            "trousseau présent" if keyring else "sans trousseau", len(keyring.keys) if keyring else 0,
+            len(vault._webhook_refs()), len(index.list_files()),
+        )
         vault._forget_removed_webhooks()
         return vault
 

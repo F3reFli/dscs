@@ -35,7 +35,7 @@ SH) ?>
 
 <?= $c->code('bash', <<<'SH'
 dscs --version
-# dscs 0.4.1
+# dscs 0.4.2
 SH) ?>
 
 <?= $c->callout('tip', '<p>To work on the code itself, use <code>make install</code> instead: see ' . $c->link('dev/contribuer') . '.</p>') ?>
@@ -48,8 +48,8 @@ It is how dscs uploads, reads back and deletes its chunks.</p>
 <?= $c->steps([
     '<p>In Discord, open the <strong>channel settings</strong> of the channel that will hold the storage (gear icon next to its name).</p>',
     '<p>Go to <strong>Integrations</strong> → <strong>Webhooks</strong> → <strong>New Webhook</strong>.</p>',
-    '<p>Give it a meaningful name (for example “Storage”): this is the name dscs displays.</p>',
-    '<p>Click <strong>Copy Webhook URL</strong>. It looks like <code>https://discord.com/api/webhooks/123456789/AbCd…</code>.</p>',
+    '<p>Give it a meaningful name: this is the name dscs displays.</p>',
+    '<p>Click <strong>Copy Webhook URL</strong>. It looks like <code>[webhooks-link]</code>.</p>',
 ]) ?>
 
 <?= $c->callout('warning', <<<'HTML'
@@ -69,8 +69,8 @@ and per channel, the most effective setup is <strong>one webhook per channel</st
 $ dscs init
 Discord : Paramètres du salon → Intégrations → Webhooks → Nouveau webhook → Copier l'URL
 
-URL du webhook : https://discord.com/api/webhooks/123456789/AbCd...
-  ✓ webhook « Storage »
+URL du webhook : [webhooks-link]
+  ✓ webhook « [webhook] »
 URL du webhook (Entrée pour terminer) :
 
 La clé privée de cet appareil protège toutes les clés du coffre.
@@ -78,10 +78,10 @@ La protéger par une phrase de passe ? (recommandé) [O/n]
 Nouvelle phrase de passe (8 caractères minimum) :
 Confirme-la :
 
-Config    : /home/you/.config/dscs/config.toml
-Appareil  : pc-fixe  (code 3381-7309-6931-3796-0561)
-Trousseau : /home/you/.config/dscs/keyring.sealed  (nouveau coffre, clé générée sur cet appareil)
-Index     : /home/you/.local/share/dscs/index.db
+Config    : [home]/.config/dscs/config.toml
+Appareil  : [device]  (code 3381-7309-6931-3796-0561)
+Trousseau : [home]/.config/dscs/keyring.sealed  (nouveau coffre, clé générée sur cet appareil)
+Index     : [home]/.local/share/dscs/index.db
 
 ⚠ Sans cet appareil (ou un autre appareil membre du coffre), tout ce qui est stocké est illisible.
   Crée dès ton premier envoi un kit de secours, à garder hors ligne : dscs key recovery
@@ -112,7 +112,7 @@ passphrase, and the final lines show the configuration, this device (<em>Apparei
 <p>If a configuration already exists, <code>dscs init</code> stops (“config already present: edit it, or run again with --force”):</p>
 
 <?= $c->code('text', <<<'TXT'
-Config déjà présente : /home/you/.config/dscs/config.toml
+Config déjà présente : [home]/.config/dscs/config.toml
 (édite-la, ou relance avec --force)
 TXT) ?>
 

@@ -10,12 +10,16 @@ $page->description = 'The keyboard interface: tabs, keys, confirmation and trans
 
 <?= $c->code('bash', <<<'SH'
 dscs                  # on the current folder
-dscs ~/Documents      # on another folder
+dscs [folder]         # on another folder
 dscs tui ls           # on a folder named like a command (ls, put, gc…)
 SH) ?>
 
 <p>The interface has a header (title, then <code>→ webhook names</code> once Discord has answered), two tabs, and a
 shortcut bar at the bottom. Its labels are in French: the tabs are <strong>Local</strong> and <strong>Distant</strong> (remote).</p>
+
+<p>At start-up, a banner plays the <code>dscs -h</code> animation (skull, padlock, DSCS) for about a second and a half,
+then folds away. It blocks nothing: the tree answers the keyboard straight away and synchronisation starts at the same
+time. It is skipped if the terminal is too small, or if the <code>DSCS_NO_ANIMATION</code> variable is set.</p>
 
 <?= $c->callout('note', '<p>If the index still holds interrupted uploads, a notification says so at start-up: <code>N envoi(s) interrompu(s) : lance « dscs gc » pour nettoyer</code> (“N interrupted upload(s): run dscs gc to clean up”). See ' . $c->link('guide/cli', null, 'cleaning-up-dscs-gc') . '.</p>') ?>
 
@@ -136,8 +140,8 @@ You can:</p>
     your home folder; <?= $c->kbd('h') ?> on its root goes up one level (towards <code>/mnt</code>, for example).</li>
 </ul>
 
-<p>If the file is stored in a remote folder (<code>photos/</code>…), the <strong>recreate the remote folder</strong>
-checkbox decides whether it lands in <code>destination/photos/</code> (ticked, the default) or directly in the
+<p>If the file is stored in a remote folder (<code>[folder]/</code>…), the <strong>recreate the remote folder</strong>
+checkbox decides whether it lands in <code>[destination]/[folder]/</code> (ticked, the default) or directly in the
 destination. The last line shows the final path; a folder that does not exist yet is created.</p>
 
 <?= $c->table(['Key', 'Action'], [
@@ -164,7 +168,7 @@ to the other.</p>
 
 <h2>Transfer screen</h2>
 
-<p>It shows the current file (<code>[2/5] photo.jpg</code>), a progress bar with estimated time left, and a log:
+<p>It shows the current file (<code>[2/5] [file]</code>), a progress bar with estimated time left, and a log:
 a green <code>✓</code> for a successful file, a red <code>✗</code> with the reason for a failure. A failure does not stop
 the following files.</p>
 

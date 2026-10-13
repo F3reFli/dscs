@@ -22,7 +22,7 @@ from dscs.services import Vault
 
 async def main() -> None:
     with Vault.open() as vault:                      # config + key + index (offline)
-        plan = vault.plan_upload([Path("~/Photos/2026").expanduser()])
+        plan = vault.plan_upload([Path("[folder]").expanduser()])
         print(f"{len(plan.items)} files, {plan.total_chunks} chunks")
 
         async with vault.connected():                # HTTP session
@@ -141,7 +141,7 @@ from dscs.config import Paths
 from dscs.services import Vault, initialize
 
 paths = Paths(config_dir=Path("/srv/vault"), data_dir=Path("/srv/vault"))
-result = initialize(paths, ["https://discord.com/api/webhooks/123/AbC..."])
+result = initialize(paths, ["[webhooks-link]"])
 print(result.identity.code, result.keyring_file)
 
 with Vault.open(paths) as vault:

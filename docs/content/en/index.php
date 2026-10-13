@@ -27,7 +27,7 @@ HTML) ?>
 <?= $c->code('bash', <<<'SH'
 pipx install .        # from the project folder
 dscs init             # paste the URL of one or more webhooks
-dscs ~/Documents      # open the interface on this folder
+dscs [folder]         # open the interface on this folder
 SH) ?>
 
 <p>Details are in <?= $c->link('guide/installation') ?>, then <?= $c->link('guide/premiers-pas') ?> walks you through

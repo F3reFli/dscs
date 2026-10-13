@@ -67,6 +67,15 @@ async def discord():
 
 
 @pytest.fixture(autouse=True)
+def quiet_log():
+    """Chaque test repart d'un journal muet (main(["-v", …]) le configure pour tout le processus)."""
+    yield
+    from dscs.cli import logs
+
+    logs.setup(0)
+
+
+@pytest.fixture(autouse=True)
 def fast_scrypt(monkeypatch):
     """scrypt allégé : les phrases de passe des tests n'ont pas besoin de résister à une attaque."""
     monkeypatch.setattr("dscs.crypto.device.SCRYPT_N", 2**10)

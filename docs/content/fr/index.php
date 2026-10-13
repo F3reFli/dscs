@@ -22,7 +22,7 @@ HTML, 'À lire avant tout') ?>
 <?= $c->code('bash', <<<'SH'
 pipx install .        # depuis le dossier du projet
 dscs init             # colle l'URL d'un ou plusieurs webhooks
-dscs ~/Documents      # ouvre l'interface sur ce dossier
+dscs [folder]         # ouvre l'interface sur ce dossier
 SH) ?>
 
 <p>Le détail est dans <?= $c->link('guide/installation') ?>, puis <?= $c->link('guide/premiers-pas') ?> te guide

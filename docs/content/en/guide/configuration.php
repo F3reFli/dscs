@@ -19,8 +19,8 @@ The comments it contains are in French.</p>
 # Ne supprime jamais dans Discord un webhook déjà utilisé : ses morceaux deviendraient inaccessibles.
 # Pour en retirer un du coffre (et les fichiers qu'il porte) : dscs webhooks rm <nom ou identifiant>
 webhooks = [
-  "https://discord.com/api/webhooks/111111111111111111/AbCd...",
-  "https://discord.com/api/webhooks/222222222222222222/EfGh...",
+  "[webhooks-link]",
+  "[webhooks-link]",
 ]
 
 # Taille des morceaux. Max 10 Mio sans Nitro (on garde de la marge).
@@ -88,11 +88,11 @@ name. To show readable names in the Remote tab, the upload screen and <code>dscs
 
 <?= $c->code('toml', <<<'TOML'
 [servers]
-"118000000000000000" = "Personal"
+"[server-id]" = "[server-name]"
 
 [channels]
-"119000000000000000" = "storage-1"
-"119000000000000001" = "photos"
+"[channel-id]" = "[channel-name]"
+"[channel-id]" = "[channel-name]"
 TOML, 'config.toml') ?>
 
 <p>These names are only used for display, on this device. A channel is shown with a <code>#</code> in front of its name.
@@ -135,8 +135,8 @@ Accepted values: from 0 (excluded) to 499.</p>
 to experiment without touching your configuration:</p>
 
 <?= $c->code('bash', <<<'SH'
-DSCS_HOME=~/personal-vault dscs init
-DSCS_HOME=~/personal-vault dscs ~/Documents
+DSCS_HOME=[folder] dscs init
+DSCS_HOME=[folder] dscs [folder]
 SH) ?>
 
 <h2>Passphrase in scripts</h2>

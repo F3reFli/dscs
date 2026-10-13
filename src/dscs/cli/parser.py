@@ -56,6 +56,7 @@ TUI keys:
 """
 
 COL = 36  # colonne des descriptions dans `dscs -h`
+USAGE = "dscs [-h] [-V] [-v] [--log <file>] <command> [<args>]"
 
 
 def _rows(rows: list[tuple[str, str]], col: int | None = None) -> str:
@@ -73,12 +74,17 @@ def _examples(rows: list[tuple[str, str]], col: int | None = None) -> str:
 
 def main_help() -> str:
     parts = [
-        "usage: dscs [-h] [-V] <command> [<args>]\n\n"
+        f"usage: {USAGE}\n\n"
         "DSCS - Discord Server Cloud Storage: end-to-end encrypted storage on Discord.\n"
     ]
     for title, commands_ in GROUPS:
         parts.append(f"{title}:\n" + _rows([(usage, SUMMARY[name]) for usage, name in commands_], COL))
-    parts.append("Options:\n" + _rows([("-h, --help", "show this help"), ("-V, --version", "show the version")], COL))
+    parts.append("Options:\n" + _rows([
+        ("-h, --help", "show this help"),
+        ("-V, --version", "show the version"),
+        ("-v, --verbose", "show what dscs does (-vv: every request)"),
+        ("--log <file>", "write that log to <file>"),
+    ], COL))
     parts.append(_examples(MAIN_EXAMPLES, COL))
     parts.append("Run `dscs <command> -h` for a command's options.\n")
     parts.append(KEYS_HELP)
@@ -122,9 +128,22 @@ class DSCSParser(argparse.ArgumentParser):
 
 
 def _command(sub, name: str, examples: list[tuple[str, str]] | None = None, description: str | None = None):
-    return sub.add_parser(
+    s = sub.add_parser(
         name.split()[-1], help=SUMMARY.get(name), description=description or SUMMARY[name].capitalize() + ".",
         epilog=_examples(examples) if examples else None, formatter_class=RAW,
+    )
+    _log_options(s, default=argparse.SUPPRESS)  # aussi après la commande : dscs put x -v
+    return s
+
+
+def _log_options(parser, default) -> None:
+    parser.add_argument(
+        "-v", "--verbose", action="count", default=0 if default is None else default,
+        help="show what dscs does (-vv: every request and chunk)",
+    )
+    parser.add_argument(
+        "--log", type=Path, metavar="<file>", default=default,
+        help="write that log to <file> instead of the terminal",
     )
 
 
@@ -140,8 +159,9 @@ def _yes(parser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = DSCSParser(top=True, prog="dscs", usage="dscs [-h] [-V] <command> [<args>]")
+    p = DSCSParser(top=True, prog="dscs", usage=USAGE)
     p.add_argument("-V", "--version", action="version", version=f"dscs {__version__}")
+    _log_options(p, default=None)
     sub = p.add_subparsers(dest="command", metavar="<command>")
     _files(sub)
     _webhooks(sub)

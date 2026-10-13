@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import secrets
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -17,7 +19,10 @@ from ..discord import SentMessage, WebhookClient, WebhookPool
 from ..errors import DSCSError
 from ..index import Index
 from ..models import Chunk, StoredFile, UploadItem, chunk_count
+from ..utils import human
 from .purge import purge_file
+
+log = logging.getLogger(__name__)
 
 ProgressCB = Callable[[int], None]
 UploadResult = StoredFile | Exception
@@ -38,6 +43,7 @@ class _Pending:
     digest: str | None = None  # SHA-256 du fichier, une fois entièrement lu
     error: Exception | None = None
     done: bool = False
+    started: float = field(default_factory=time.monotonic)
 
 
 async def upload_file(
@@ -85,6 +91,9 @@ async def upload_files(
     hooks = clients or pool.all()
     for h in hooks:
         index.register_webhook(h.id)
+    t0 = time.monotonic()
+    log.info("envoi de %d fichier(s), %s, sur %d webhook(s) : %s",
+             len(items), human(sum(i.size for i in items)), len(hooks), ", ".join(h.id for h in hooks))
     results: list[UploadResult | None] = [None] * len(items)
     started: list[_Pending] = []
     queue: asyncio.Queue = asyncio.Queue(maxsize=len(hooks) * 2)
@@ -96,6 +105,11 @@ async def upload_files(
 
     def settle(pos: int, p: _Pending | None, outcome: UploadResult) -> None:
         results[pos] = outcome
+        if isinstance(outcome, Exception):
+            log.warning("✗ %s : %s", items[pos].path.name, outcome)
+        elif p is not None:
+            elapsed = time.monotonic() - p.started
+            log.info("✓ %s (%s, %d morceau(x)) en %.1f s", outcome.path, human(outcome.size), outcome.chunks, elapsed)
         if p is not None and isinstance(outcome, Exception):
             progress(p, max(0, p.item.size - p.progressed))  # la barre avance quand même jusqu'au total
         elif p is None and on_progress and items[pos].size:
@@ -125,6 +139,7 @@ async def upload_files(
         uid = secrets.token_hex(16)
         p = _Pending(item, index.add_file(uid, path.name, item.folder, size, n, CHUNK_FORMAT, key_id), n, size)
         started.append(p)
+        log.debug("lecture de %s : %s, %d morceau(x)", path.name, human(size), n)
         try:
             read = 0
             with path.open("rb") as f:
@@ -158,11 +173,15 @@ async def upload_files(
             pos, p, i, blob, plain = job
             if p.error:
                 continue
+            t1 = time.monotonic()
             try:
                 msg = await _send(hook, blob, index, p.fid, i)
             except (DSCSError, OSError) as e:
                 fail(pos, p, e)
                 continue
+            log.debug("morceau %d/%d de %s → webhook %s, message %s (%s chiffrés, %.0f ms)",
+                      i + 1, p.chunks, p.item.path.name, hook.id, msg.id, human(len(blob)),
+                      (time.monotonic() - t1) * 1000)
             p.uploaded += 1
             if not channel_known and msg.channel_id:
                 index.register_webhook(hook.id, msg.channel_id)
@@ -185,7 +204,12 @@ async def upload_files(
     for p in started:
         if p.error is not None:
             await purge_file(p.fid, index=index, pool=pool)  # échec : repris par dscs gc
-    return [r for r in results if r is not None]
+    done = [r for r in results if r is not None]
+    sent = sum(r.size for r in done if not isinstance(r, Exception))
+    elapsed = time.monotonic() - t0
+    log.info("envoi terminé : %d/%d fichier(s), %s en %.1f s (%s/s)", sum(not isinstance(r, Exception) for r in done),
+             len(items), human(sent), elapsed, human(sent / elapsed if elapsed else 0))
+    return done
 
 
 async def _send(hook: WebhookClient, blob: bytes, index: Index, file_id: int, idx: int) -> SentMessage:

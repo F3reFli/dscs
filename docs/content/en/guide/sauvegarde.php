@@ -33,7 +33,7 @@ protections, from the simplest to the strongest:</p>
 <h2>The recovery kit</h2>
 
 <?= $c->code('bash', <<<'SH'
-dscs key recovery -o dscs-kit.txt
+dscs key recovery -o [file]
 SH) ?>
 
 <p>The kit is the private key of a “recovery” device, member of the vault, plus the vault's address. It does not change

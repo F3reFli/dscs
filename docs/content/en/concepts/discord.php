@@ -62,9 +62,11 @@ most 30 s, and a read that stays silent for more than 180 s is considered droppe
 
 <h2>Parallelism</h2>
 
-<p>While a file is being uploaded, <strong>each webhook has its own stream</strong>: with three webhooks, three chunks go out
-at the same time. The chunks of one file are thus spread across the webhooks (and their channels). Files, however, are sent
-one after the other.</p>
+<p>During an upload, <strong>each webhook has its own stream</strong> and takes the next chunk as soon as it is free: with
+three webhooks, three chunks go out at the same time. The chunks of every file in the upload go through the same queue: those
+of a large file are spread across the webhooks (and their channels), and several single-chunk files go out at the same time
+on different webhooks, with no pause between files. <code>dscs bench</code> measures the resulting rate
+(<?= $c->link('reference/cli', null, 'bench') ?>).</p>
 
 <p>On download, three chunks are prefetched while the previous one is decrypted and written.</p>
 

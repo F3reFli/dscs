@@ -8,7 +8,9 @@ $page->description = 'How the dscs code is split into layers, and the rules that
 ?>
 <p>The <code>src/dscs/</code> package is organised in layers: each layer only depends on the layers below it. The interface
 (text UI or command line) only displays and reads input; all the logic goes through the <code>services</code> layer, first
-of all through a single object, the <strong>Vault</strong>. The reference document is <code>ARCHITECTURE.md</code> at the root of the repository (in French).</p>
+of all through a single object, the <strong>Vault</strong>. The reference document is <code>ARCHITECTURE.md</code> at the root of the repository (in French); the repository's
+<code>architecture/</code> folder holds functional diagrams of the whole pipeline (keys, upload, download, sync, devices,
+security), rendered directly by GitHub (in French).</p>
 
 <h2>The layers</h2>
 
@@ -139,7 +141,7 @@ new interface (a GUI, a local web service…) would only need to talk to the Vau
     ['<code>cli/progress.py</code>', 'Text progress bar (disabled outside a terminal).'],
     ['<code>cli/prompts.py</code>', 'Input: confirmations, passphrases, secret text (hidden input).'],
     ['<code>tui/app.py</code>, <code>app.tcss</code>', 'Textual application and its styles.'],
-    ['<code>tui/widgets/</code>', '<code>VimTree</code> (Local tab), <code>RemoteTable</code> (Remote tab, multiple selection), <code>WebhookPanel</code> (server and channel).'],
+    ['<code>tui/widgets/</code>', '<code>VimTree</code> (Local tab), <code>RemoteTable</code> (Remote tab, multiple selection), <code>WebhookPanel</code> (server and channel), <code>BannerStrip</code> (welcome animation, non-blocking), shared vim navigation (<code>vim.py</code>).'],
     ['<code>tui/screens/</code>', '<code>UploadScreen</code> (webhook choice), <code>DownloadScreen</code> (destination), <code>ConfirmScreen</code>, <code>TransferScreen</code>.'],
 ]) ?>
 

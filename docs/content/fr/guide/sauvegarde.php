@@ -33,7 +33,7 @@ d'<em>au moins un</em> appareil, ou le kit de secours.</p>
 <h2>Le kit de secours</h2>
 
 <?= $c->code('bash', <<<'SH'
-dscs key recovery -o kit-dscs.txt
+dscs key recovery -o [file]
 SH) ?>
 
 <p>Le kit est la clé privée d'un appareil « de secours », membre du coffre, plus l'adresse du coffre. Il ne change pas

@@ -31,6 +31,7 @@ Dscs/
 ├── src/dscs/            le package (voir « Architecture »)
 ├── tests/               unit/, integration/, tui/, fakes/ (faux serveur Discord)
 ├── docs/                ce site (PHP + SCSS)
+├── architecture/        schémas fonctionnels (Mermaid) de toute la pipeline
 ├── media/               captures et GIF du README (générés par make media)
 ├── scripts/             make_media.py
 ├── ARCHITECTURE.md      référence technique

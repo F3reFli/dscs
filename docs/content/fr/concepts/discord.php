@@ -63,9 +63,11 @@ et une lecture qui reste muette plus de 180 s est considérée comme coupée.</p
 
 <h2>Parallélisme</h2>
 
-<p>Pendant l'envoi d'un fichier, <strong>chaque webhook a son propre flux</strong> : avec trois webhooks, trois morceaux partent
-en même temps. Les morceaux d'un même fichier sont donc répartis entre les webhooks (et leurs salons). Les fichiers, eux,
-partent l'un après l'autre.</p>
+<p>Pendant un envoi, <strong>chaque webhook a son propre flux</strong> et prend le morceau suivant dès qu'il est libre : avec
+trois webhooks, trois morceaux partent en même temps. Les morceaux de tous les fichiers de l'envoi passent par la même file :
+ceux d'un gros fichier se répartissent entre les webhooks (et leurs salons), et plusieurs petits fichiers d'un seul morceau
+partent en même temps sur des webhooks différents, sans pause entre deux fichiers. <code>dscs bench</code> mesure le débit
+obtenu (<?= $c->link('reference/cli', null, 'bench') ?>).</p>
 
 <p>Au téléchargement, trois morceaux sont préchargés en avance pendant que le précédent est déchiffré et écrit.</p>
 

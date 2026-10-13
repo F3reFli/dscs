@@ -12,18 +12,18 @@ The full option reference is in <?= $c->link('reference/cli') ?>.</p>
 <h2>Uploading: <code>dscs put</code></h2>
 
 <?= $c->code('bash', <<<'SH'
-dscs put report.pdf                    # a file -> remote root
-dscs put ~/Photos/2026                 # a folder -> remote folder "2026"
-dscs put *.iso archives/ notes.md      # several paths at once
+dscs put [file]                        # a file -> remote root
+dscs put [folder]                      # a folder -> remote folder of the same name
+dscs put [file] [folder] [file]        # several paths at once
 SH) ?>
 
 <p>Folders are walked recursively and keep their structure under their own name (not their full path):
-<code>~/Photos/2026/january/a.jpg</code> is stored in <code>2026/january</code>. Each file shows a progress bar (in a
+<code>[path]/[folder]/[subfolder]/[file]</code> is stored in <code>[folder]/[subfolder]</code>. Each file shows a progress bar (in a
 terminal), then its result:</p>
 
 <?= $c->code('text', <<<'TXT'
-  ✓ [14] 2026/january/a.jpg  (3.2 Mo)
-  ✗ locked.db : [Errno 13] Permission denied: '/home/you/Photos/2026/locked.db'
+  ✓ [14] [folder]/[subfolder]/[file]  (3.2 Mo)
+  ✗ [file] : [Errno 13] Permission denied: '[path]/[folder]/[file]'
 TXT) ?>
 
 <p>A failure does not stop the other files; the exit code is then <code>1</code>. If a file changes while it is being
@@ -36,8 +36,8 @@ again”) and its chunks are removed from Discord.</p>
 only uses some of them, designated by ID or by name (case-insensitive):</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs put -w photos ~/Photos/2026              # only the webhook named "photos"
-dscs put -w 1180000000000000 -w archives x.iso  # two webhooks, by ID and by name
+dscs put -w [webhook] [folder]                # only the webhook named [webhook]
+dscs put -w [webhook-id] -w [webhook] [file]  # two webhooks, by ID and by name
 SH) ?>
 
 <p>An unknown name is refused before anything is uploaded, with the list of the vault's webhooks:
@@ -49,8 +49,8 @@ names and IDs.</p>
 <?= $c->code('text', <<<'TXT'
 $ dscs ls
    ID      Taille  Envoyé le         Chemin
-    3      1.2 Mo  12/10/2026 09:58  report.pdf
-   14      3.2 Mo  12/10/2026 10:05  2026/january/a.jpg
+    3      1.2 Mo  12/10/2026 09:58  [file]
+   14      3.2 Mo  12/10/2026 10:05  [folder]/[subfolder]/[file]
 
 2 fichier(s), 4.4 Mo
 TXT) ?>
@@ -62,13 +62,13 @@ chunks on Discord: run dscs gc”) is added at the end.</p>
 <h2>Downloading: <code>dscs get</code></h2>
 
 <?= $c->code('bash', <<<'SH'
-dscs get 14                 # -> download_dir/2026/january/a.jpg
-dscs get 14 -o ~/Desktop    # -> ~/Desktop/2026/january/a.jpg
+dscs get [id]                     # -> download_dir/[folder]/[subfolder]/[file]
+dscs get [id] -o [destination]    # -> [destination]/[folder]/[subfolder]/[file]
 SH) ?>
 
 <p>The remote folder is recreated under the destination; <code>--flat</code> puts the file directly in the destination
-(<code>dscs get 14 -o ~/Desktop --flat</code> → <code>~/Desktop/a.jpg</code>). An existing file is never overwritten: the new one becomes
-<code>a (1).jpg</code>. The line <code>✓ /full/path  (intégrité vérifiée)</code> confirms that the SHA-256 matches the original.</p>
+(<code>dscs get [id] -o [destination] --flat</code> → <code>[destination]/[file]</code>). An existing file is never overwritten: the new one becomes
+<code>[name] (1).[ext]</code>. The line <code>✓ /full/path  (intégrité vérifiée)</code> confirms that the SHA-256 matches the original.</p>
 
 <h2>Webhooks: <code>dscs webhooks</code></h2>
 
@@ -77,11 +77,11 @@ channel in Discord. The information is asked from Discord again on every call.</
 
 <?= $c->code('text', <<<'TXT'
 $ dscs webhooks
-Stockage  (1180000000000000001)
-  Serveur : Perso (1170000000000000000)
-  Salon   : 1190000000000000000
+[webhook]  ([webhook-id])
+  Serveur : [server] ([server-id])
+  Salon   : [channel-id]
   Morceaux stockés : 42
-  Ouvrir  : https://discord.com/channels/1170000000000000000/1190000000000000000
+  Ouvrir  : [channel-link]
 
 Discord ne donne pas aux webhooks le nom de leur serveur ni de leur salon : tu peux les nommer
 dans config.toml, sections [servers] et [channels] ("identifiant" = "nom").
@@ -93,8 +93,8 @@ TXT) ?>
 <h2>Deleting: <code>dscs rm</code></h2>
 
 <?= $c->code('bash', <<<'SH'
-dscs rm 14          # Supprimer 2026/january/a.jpg (3.2 Mo) de Discord ? [o/N]
-dscs rm 14 -y       # no confirmation (scripts)
+dscs rm [id]        # Supprimer [folder]/[subfolder]/[file] (3.2 Mo) de Discord ? [o/N]
+dscs rm [id] -y     # no confirmation (scripts)
 SH) ?>
 
 <p>The confirmation accepts <code>o</code>, <code>oui</code>, <code>y</code> or <code>yes</code>; any other answer cancels
@@ -137,7 +137,7 @@ or <code>dscs ./ls</code>.</p>
 #!/usr/bin/env bash
 # Nightly upload of a folder, keeping track of failures
 set -u
-if ! dscs put ~/Documents/accounts >> ~/dscs.log 2>&1; then
+if ! dscs put [folder] >> ~/dscs.log 2>&1; then
   echo "$(date): at least one file failed" >> ~/dscs.log
 fi
 dscs gc >> ~/dscs.log 2>&1

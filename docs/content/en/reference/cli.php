@@ -12,7 +12,7 @@ $page->description = 'Complete reference of every dscs subcommand: synopsis, arg
 <h2>Synopsis</h2>
 
 <?= $c->code('text', <<<'TXT'
-dscs [-h] [-V] <command> [<args>]
+dscs [-h] [-V] [-v] [--log <file>] <command> [<args>]
 
 dscs [FOLDER]                interface (shortcut for "dscs tui")
 dscs tui [FOLDER]
@@ -36,7 +36,13 @@ TXT) ?>
 <?= $c->table(['Option', 'Effect'], [
     ['<code>-h</code>, <code>--help</code>', 'General help, or help for a command (<code>dscs get --help</code>)'],
     ['<code>-V</code>, <code>--version</code>', 'Prints <code>dscs &lt;version&gt;</code>'],
+    ['<code>-v</code>, <code>--verbose</code>', 'Log on standard error: the steps (synchronisation, start and end of each file, Discord throttling, retries). <code>-vv</code>: also every HTTP request (method, route, status, duration) and every chunk (webhook, size, time)'],
+    ['<code>--log FILE</code>', 'Writes that log to <code>FILE</code> (created with mode <code>600</code>) instead of the terminal; on its own, same as <code>-v</code>. With the interface, the log always goes to a file: <code>~/.local/share/dscs/dscs.log</code> by default'],
 ]) ?>
+
+<p>These options go before or after the command (<code>dscs -v put …</code> or <code>dscs put … -v</code>). The log
+<strong>never contains secrets</strong>: webhook URLs show <code>***</code> instead of the token, CDN links have no signature, and
+no key is ever written. It does contain your file names.</p>
 
 <h2><code>tui</code></h2>
 <?= $c->code('text', 'dscs tui [FOLDER]') ?>
@@ -174,4 +180,6 @@ Synchronisation is also done automatically by every network command. Code <code>
     ['<code>XDG_CONFIG_HOME</code>', 'Base of <code>dscs/config.toml</code>, <code>dscs/device.json</code>, <code>dscs/keyring.sealed</code> (default <code>~/.config</code>)'],
     ['<code>XDG_DATA_HOME</code>', 'Base of <code>dscs/index.db</code> (default <code>~/.local/share</code>)'],
     ['<code>HTTPS_PROXY</code>, <code>HTTP_PROXY</code>, <code>NO_PROXY</code>', 'Network proxy'],
+    ['<code>DSCS_NO_ANIMATION</code>', 'No animation: static banner for <code>dscs -h</code>, no banner when the interface starts'],
+    ['<code>NO_COLOR</code>', '<code>dscs -h</code> banner without colour or animation'],
 ]) ?>

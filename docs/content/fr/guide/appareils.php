@@ -42,7 +42,7 @@ SH) ?>
 
 <?= $c->steps([
     '<p><strong>Sur le nouvel appareil</strong> (dscs installé) : crée son identité.</p>' . $c->code('bash', 'dscs device init') . '<p>Il affiche sa <strong>clé publique</strong> (<code>dscs-pub-…</code>) et son <strong>code</strong> (20 chiffres). Transmets la clé publique à l\'appareil membre, par n\'importe quel moyen : elle n\'est pas secrète.</p>',
-    '<p><strong>Sur un appareil déjà membre</strong> : ajoute-le.</p>' . $c->code('bash', 'dscs device add dscs-pub-… --name portable') . '<p>dscs affiche le code de la clé reçue : <strong>vérifie qu\'il est identique</strong> à celui du nouvel appareil avant de confirmer. Il donne ensuite une <strong>invitation</strong> (<code>dscs-inv1-…</code>) et son propre code.</p>',
+    '<p><strong>Sur un appareil déjà membre</strong> : ajoute-le.</p>' . $c->code('bash', 'dscs device add dscs-pub-… --name [device-2]') . '<p>dscs affiche le code de la clé reçue : <strong>vérifie qu\'il est identique</strong> à celui du nouvel appareil avant de confirmer. Il donne ensuite une <strong>invitation</strong> (<code>dscs-inv1-…</code>) et son propre code.</p>',
     '<p><strong>Sur le nouvel appareil</strong> : rejoins le coffre avec l\'invitation.</p>' . $c->code('bash', 'dscs device join dscs-inv1-…') . '<p>dscs affiche le nom et le code de l\'appareil qui l\'a ajouté : <strong>vérifie qu\'il est identique</strong>, puis confirme. Le trousseau, les webhooks et la liste des fichiers arrivent ; rien n\'est à configurer.</p>',
 ]) ?>
 
@@ -61,10 +61,10 @@ bloque l'opération.</p>
 $ dscs device list
 Coffre 3209f41d9111ac84 · 2 appareil(s) membre(s)
 
-pc-fixe  (cet appareil)
+[device]  (cet appareil)
   Code   : 3381-7309-6931-3796-0561
   Ajouté : 12/10/2026 13:41
-portable
+[device-2]
   Code   : 5194-9876-1085-3989-0479
   Ajouté : 12/10/2026 13:41
 TXT) ?>
@@ -102,7 +102,7 @@ nouveau kit de secours : l'ancien pointe vers l'ancienne adresse.</p>
 <p>Appareil perdu, volé, ou personne qui ne doit plus avoir accès :</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs device revoke portable          # nom, code ou identifiant (voir dscs device list)
+dscs device revoke [device-2]        # nom, code ou identifiant (voir dscs device list)
 SH) ?>
 
 <p>L'appareil est retiré du trousseau et le coffre passe à une <strong>nouvelle génération de clé</strong>, qu'il ne
@@ -130,7 +130,7 @@ SH) ?>
 la clé privée d'un appareil « de secours », membre du coffre, plus l'adresse du coffre.</p>
 
 <?= $c->code('bash', <<<'SH'
-dscs key recovery -o kit-dscs.txt     # crée le kit (fichier lisible par toi seul) ; sans -o, il est affiché
+dscs key recovery -o [file]           # crée le kit (fichier lisible par toi seul) ; sans -o, il est affiché
 SH) ?>
 
 <?= $c->callout('danger', '<p>Le kit donne accès à <strong>tout</strong> le coffre. Imprime-le et range-le dans un endroit sûr, ou garde-le sur une clé USB chiffrée. Jamais sur Discord, dans un mail ou dans un nuage.</p>') ?>

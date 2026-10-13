@@ -10,12 +10,17 @@ $page->description = 'L\'interface au clavier : onglets, touches, confirmation e
 
 <?= $c->code('bash', <<<'SH'
 dscs                  # sur le dossier courant
-dscs ~/Documents      # sur un autre dossier
+dscs [folder]         # sur un autre dossier
 dscs tui ls           # sur un dossier qui porte le nom d'une commande (ls, put, gc…)
 SH) ?>
 
 <p>L'interface se compose d'un en-tête (titre, puis <code>→ nom des webhooks</code> une fois que Discord a répondu),
 de deux onglets et d'une barre de raccourcis en bas.</p>
+
+<p>Au lancement, un bandeau joue l'animation de <code>dscs -h</code> (tête de mort, cadenas, DSCS) pendant environ une
+seconde et demie, puis se replie. Il ne bloque rien : l'arbre répond au clavier tout de suite et la synchronisation
+démarre en même temps. Il est omis si le terminal est trop petit, ou si la variable <code>DSCS_NO_ANIMATION</code> est
+définie.</p>
 
 <?= $c->callout('note', '<p>S\'il reste des envois interrompus dans l\'index, une notification le signale au démarrage : <code>N envoi(s) interrompu(s) : lance « dscs gc » pour nettoyer</code>. Voir ' . $c->link('guide/cli', null, 'nettoyer-dscs-gc') . '.</p>') ?>
 
@@ -137,8 +142,8 @@ choisi). Tu peux :</p>
     dossier personnel ; <?= $c->kbd('h') ?> sur sa racine remonte d'un niveau (vers <code>/mnt</code>, par exemple).</li>
 </ul>
 
-<p>Si le fichier est rangé dans un dossier distant (<code>photos/</code>…), la case <strong>Recréer le dossier
-distant</strong> décide s'il arrive dans <code>destination/photos/</code> (cochée, par défaut) ou directement dans la
+<p>Si le fichier est rangé dans un dossier distant (<code>[folder]/</code>…), la case <strong>Recréer le dossier
+distant</strong> décide s'il arrive dans <code>[destination]/[folder]/</code> (cochée, par défaut) ou directement dans la
 destination. La dernière ligne montre le chemin final ; un dossier qui n'existe pas encore est créé.</p>
 
 <?= $c->table(['Touche', 'Action'], [
@@ -164,7 +169,7 @@ défaut, l'opération étant irréversible. <?= $c->kbd('h') ?> et <?= $c->kbd('
 
 <h2>Écran de transfert</h2>
 
-<p>Il affiche le fichier en cours (<code>[2/5] photo.jpg</code>), une barre de progression avec temps restant estimé,
+<p>Il affiche le fichier en cours (<code>[2/5] [file]</code>), une barre de progression avec temps restant estimé,
 et un journal : <code>✓</code> en vert pour un fichier réussi, <code>✗</code> en rouge avec la raison pour un échec.
 Un échec n'arrête pas les fichiers suivants.</p>
 

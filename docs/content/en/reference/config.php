@@ -59,20 +59,20 @@ webhook URL, token masked).</p>
 
 <?= $c->code('toml', <<<'TOML'
 webhooks = [
-  "https://discord.com/api/webhooks/111111111111111111/AbCd...",
-  "https://discord.com/api/webhooks/222222222222222222/EfGh...",
-  "https://discord.com/api/webhooks/333333333333333333/IjKl...",
+  "[webhooks-link]",
+  "[webhooks-link]",
+  "[webhooks-link]",
 ]
 chunk_size_mb = 9.0
 download_dir = "~/Downloads/dscs"
 show_hidden = true
 
 [servers]
-"118000000000000000" = "Personal"
+"[server-id]" = "[server-name]"
 
 [channels]
-"119000000000000000" = "storage-1"
-"119000000000000001" = "photos"
+"[channel-id]" = "[channel-name]"
+"[channel-id]" = "[channel-name]"
 TOML) ?>
 
 <h2>Reading errors</h2>
